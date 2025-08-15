@@ -4,38 +4,30 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Docker image tag to deploy (default: latest)'
+        description: 'Docker image tag or digest to deploy (default: latest)'
         required: false
         default: 'latest'
 
 jobs:
   deploy:
     runs-on: [self-hosted, microk8s]
+
     steps:
-      - name: Checkout repo
+      # 1. Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Apply manifests first (creates namespace, deployments, etc.)
+      # 2. Apply Kubernetes manifests
       - name: Deploy manifests
         run: |
           microk8s kubectl apply -k k8s/
 
-      # Remove old image to avoid architecture mismatch
-      - name: Remove old image
-        run: |
-          IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:${{ github.event.inputs.image_tag }}
-          microk8s ctr images rm $IMAGE || echo "No old image to remove"
-
-      # Pull the latest multi-arch image
-      - name: Pull latest image
-        run: |
-          IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:${{ github.event.inputs.image_tag }}
-          microk8s ctr images pull $IMAGE
-
-      # Update deployment to use new image
+      # 3. Update deployment image dynamically
       - name: Update deployment image
         run: |
+          # Use either 'latest' or a specific digest/tag passed via workflow_dispatch
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:${{ github.event.inputs.image_tag }}
+          echo "Updating deployment with image: $IMAGE"
           microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
           microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
 
