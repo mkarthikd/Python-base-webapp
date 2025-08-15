@@ -10,33 +10,17 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, microk8s]
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
-
-      - name: Write kubeconfig
+      - name: Deploy manifests
         run: |
-          echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig
-          chmod 600 kubeconfig
-          export KUBECONFIG=$PWD/kubeconfig
-          kubectl version --client=true
+          microk8s kubectl apply -k k8s/
 
-      - name: Apply manifests
-        env:
-          KUBECONFIG: ${{ github.workspace }}/kubeconfig
-        run: |
-          kubectl apply -k k8s
-
-      - name: Set image
-        env:
-          KUBECONFIG: ${{ github.workspace }}/kubeconfig
+      - name: Update deployment image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:${{ github.event.inputs.image_tag }}
-          kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
-          kubectl -n telecom rollout status deployment/telecom-api --timeout=120s
+          microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
+          microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=120s
