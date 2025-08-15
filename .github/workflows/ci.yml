@@ -56,11 +56,11 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Snyk Code (SAST) Scan
-        uses: snyk/actions/python@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=medium
+
 
 
       - name: Snyk Container Scan
