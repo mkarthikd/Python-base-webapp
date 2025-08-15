@@ -28,7 +28,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest -q
+          PYTHONPATH=$PYTHONPATH:. pytest -q
 
       - name: Generate synthetic data (small sample for CI)
         run: |
