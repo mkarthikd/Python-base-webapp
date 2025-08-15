@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: telecom-api
-          image: DOCKERHUB_USERNAME/telecom-customer-insights:latest
+          image: telecom-customer-insights:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
