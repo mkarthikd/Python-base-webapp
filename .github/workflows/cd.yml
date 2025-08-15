@@ -1,0 +1,42 @@
+name: CD - Deploy to MicroK8s
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Write kubeconfig
+        run: |
+          echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig
+          chmod 600 kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl version --client=true
+
+      - name: Apply manifests
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig
+        run: |
+          kubectl apply -k k8s
+
+      - name: Set image
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig
+        run: |
+          IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:${{ github.event.inputs.image_tag }}
+          kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
+          kubectl -n telecom rollout status deployment/telecom-api --timeout=120s
