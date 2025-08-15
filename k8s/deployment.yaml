@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: telecom-api
-          image: telecom-customer-insights:latest
+          image: karthikmd06/telecom-customer-insights:30a621c2c0ccfb1ae0fe09521b8cf33756d45d50
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
