@@ -52,13 +52,15 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
       - name: Snyk Code (SAST) Scan
+        uses: snyk/actions/python@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          pip install -r requirements.txt
-          pip install snyk
-          snyk test --severity-threshold=medium
+        with:
+          args: --severity-threshold=medium
 
 
       - name: Snyk Container Scan
