@@ -26,7 +26,7 @@ jobs:
       - name: Update deployment image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:${{ github.event.inputs.image_tag }}
-          microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE --record
+          microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
           microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
 
       # 4. Verify pod health
