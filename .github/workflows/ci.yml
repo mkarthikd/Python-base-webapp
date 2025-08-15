@@ -22,55 +22,86 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 3. Install dependencies including pytest
-      - name: Install dependencies
+      # 3. Cache Python dependencies
+      - name: Cache Python packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # 4. Install Python dependencies including pytest
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
 
-      # 4. Run unit tests with correct PYTHONPATH
+      # 5. Run unit tests with correct PYTHONPATH
       - name: Run unit tests
         run: |
           PYTHONPATH=$PYTHONPATH:. pytest -q
 
-      # 5. Generate synthetic data for CI
+      # 6. Generate synthetic data for CI
       - name: Generate synthetic data
         run: |
           python app/data/generate_synthetic.py --rows 5000 --out app/data/customers.csv
 
-      # 6. Docker Buildx setup
+      # 7. Docker Buildx setup
       - name: Docker setup Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 7. Docker login
+      # 8. Cache Docker layers
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-docker-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      # 9. Docker login
       - name: Docker login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 8. Build Docker image
+      # 10. Build Docker image with cache
       - name: Build image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-                       -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest .
+          docker buildx build \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest .
 
-      # 9. Push Docker image
+          # Move new cache to persistent location
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # 11. Push Docker image
       - name: Push image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
-      # 10. Snyk Code (SAST) Scan
-      - name: Snyk Code (SAST) Scan
-        uses: snyk/actions/python@master
+      # 12. Setup Node.js & install Snyk CLI
+      - name: Setup Node.js & Snyk CLI
+        uses: actions/setup-node@v3
+        with:
+          node-version: '24'
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      # 13. Snyk Python Scan (SAST)
+      - name: Snyk Python Scan
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=medium
+        run: snyk test --all-projects --severity-threshold=medium
 
-      # 11. Snyk Container Scan
+      # 14. Snyk Container Scan
       - name: Snyk Container Scan
         uses: snyk/actions/docker@master
         env:
