@@ -68,23 +68,19 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 10. Build Docker image with cache
-      - name: Build image
+      # 10. Build and push multi-arch Docker image
+      - name: Build and push multi-arch image
         run: |
+          docker buildx create --use
           docker buildx build \
-            --load \
-            --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            --platform linux/amd64,linux/arm64 \
+            --push \
+            --cache-from=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+            --cache-to=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest,mode=max \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest .
 
-      # 11. Push Docker image
-      - name: Push image
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-
-      # 12. Setup Node.js & install Snyk CLI
+      # 11. Setup Node.js & install Snyk CLI
       - name: Setup Node.js & Snyk CLI
         uses: actions/setup-node@v3
         with:
@@ -92,13 +88,13 @@ jobs:
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      # 13. Snyk Python Scan (SAST)
+      # 12. Snyk Python Scan (SAST)
       - name: Snyk Python Scan
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: snyk test --all-projects --severity-threshold=medium
 
-      # 14. Snyk Container Scan
+      # 13. Snyk Container Scan
       - name: Snyk Container Scan
         uses: snyk/actions/docker@master
         env:

@@ -11,16 +11,28 @@ on:
 jobs:
   deploy:
     runs-on: [self-hosted, microk8s]
+
     steps:
+      # 1. Checkout repository
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2. Apply kustomize manifests
       - name: Deploy manifests
         run: |
           microk8s kubectl apply -k k8s/
 
+      # 3. Update deployment image and record it
       - name: Update deployment image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:${{ github.event.inputs.image_tag }}
-          microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
-          microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=120s
+          microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE --record
+          microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
+
+      # 4. Verify pod health
+      - name: Check pod status
+        run: |
+          echo "Waiting 10s for pods to stabilize..."
+          sleep 10
+          microk8s kubectl -n telecom get pods -o wide
+          microk8s kubectl -n telecom get deployment telecom-api -o wide
