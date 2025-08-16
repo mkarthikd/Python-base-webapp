@@ -17,20 +17,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      # artifact
-      - name: Download image-sha artifact
-        if: ${{ github.event.inputs.image_sha == '' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: image-sha
-          path: ./artifact
+      # # artifact
+      # - name: Download image-sha artifact
+      #   if: ${{ github.event.inputs.image_sha == '' }}
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: image-sha
+      #     path: ./artifact
 
       - name: Set image
         run: |
           if [ -n "${{ github.event.inputs.image_sha }}" ]; then
             IMAGE_TAG="${{ github.event.inputs.image_sha }}"
           else
-            IMAGE_TAG=$(cat ./artifact/image-sha.txt)
+            IMAGE_TAG="latest"
           fi
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:$IMAGE_TAG
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
