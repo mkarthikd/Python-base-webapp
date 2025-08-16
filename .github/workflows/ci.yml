@@ -84,3 +84,11 @@ jobs:
       - name: Output image SHA
         run: |
           echo "IMAGE_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          echo "${{ github.sha }}" > image-sha.txt
+
+      # 12. Upload image SHA as artifact for CD workflow
+      - name: Upload image SHA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-sha
+          path: image-sha.txt
