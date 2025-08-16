@@ -22,8 +22,9 @@ jobs:
         if: ${{ github.event.inputs.image_sha == '' }}
         uses: dawidd6/action-download-artifact@v2
         with:
-          workflow: ci.yaml        # <-- must match your CI workflow filename
+          workflow: "CI - Build, Test, Scan, Push"  
           workflow_conclusion: success
+          branch: main
           name: image-sha
           path: ./artifact
 
