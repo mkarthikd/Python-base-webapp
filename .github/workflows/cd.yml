@@ -1,4 +1,59 @@
-# cd.yaml
+# # cd.yaml
+# name: CD - Deploy to MicroK8s
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       image_sha:
+#         description: "Docker image SHA or tag to deploy (leave empty to use last built SHA)"
+#         required: false
+#         default: ""
+
+# jobs:
+#   deploy:
+#     runs-on: [self-hosted, microk8s]
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
+      
+#       # # artifact
+#       # - name: Download image-sha artifact
+#       #   if: ${{ github.event.inputs.image_sha == '' }}
+#       #   uses: actions/download-artifact@v4
+#       #   with:
+#       #     name: image-sha
+#       #     path: ./artifact
+
+#       - name: Set image
+#         run: |
+#           if [ -n "${{ github.event.inputs.image_sha }}" ]; then
+#             IMAGE_TAG="${{ github.event.inputs.image_sha }}"
+#           else
+#             IMAGE_TAG="latest"
+#           fi
+#           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:$IMAGE_TAG
+#           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+#           echo "Using IMAGE: $IMAGE"
+
+#       - name: Deploy manifests
+#         run: microk8s kubectl apply -k k8s/
+
+#       - name: Update deployment image
+#         run: |
+#           echo "Updating deployment with image: $IMAGE"
+#           microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
+#           microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
+
+#       - name: Check pods and images
+#         run: |
+#           echo "Waiting a few seconds for pods to settle..."
+#           sleep 10
+#           microk8s kubectl -n telecom get pods -o wide
+#           microk8s kubectl -n telecom get deployment telecom-api -o wide
+#           echo "Current images for all pods:"
+#           microk8s kubectl -n telecom get pods -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}'
+
 name: CD - Deploy to MicroK8s
 
 on:
@@ -14,17 +69,11 @@ jobs:
     runs-on: [self-hosted, microk8s]
 
     steps:
+      # 1. Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      # # artifact
-      # - name: Download image-sha artifact
-      #   if: ${{ github.event.inputs.image_sha == '' }}
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: image-sha
-      #     path: ./artifact
 
+      # 2. Resolve image tag
       - name: Set image
         run: |
           if [ -n "${{ github.event.inputs.image_sha }}" ]; then
@@ -36,20 +85,26 @@ jobs:
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
           echo "Using IMAGE: $IMAGE"
 
+      # 3. Apply Kubernetes manifests
       - name: Deploy manifests
-        run: microk8s kubectl apply -k k8s/
+        run: |
+          microk8s kubectl apply -k k8s/
 
-      - name: Update deployment image
+      # 4. Update deployment image dynamically with environment variables
+      - name: Update deployment image and env
         run: |
           echo "Updating deployment with image: $IMAGE"
           microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
+          microk8s kubectl -n telecom set env deployment/telecom-api FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=5000
           microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
 
+      # 5. Verify pod status and deployed image
       - name: Check pods and images
         run: |
           echo "Waiting a few seconds for pods to settle..."
           sleep 10
           microk8s kubectl -n telecom get pods -o wide
           microk8s kubectl -n telecom get deployment telecom-api -o wide
-          echo "Current images for all pods:"
+          echo "Current images and env for all pods:"
           microk8s kubectl -n telecom get pods -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}'
+          microk8s kubectl -n telecom get deployment telecom-api -o yaml | grep -A5 "env:"
