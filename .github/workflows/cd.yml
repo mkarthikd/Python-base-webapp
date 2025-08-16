@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       image_sha:
-        description: 'Docker image SHA or tag to deploy (leave empty to use last built SHA)'
+        description: "Docker image SHA or tag to deploy (leave empty to use last built SHA)"
         required: false
-        default: ''
+        default: ""
 
 jobs:
   deploy:
@@ -22,7 +22,7 @@ jobs:
         if: ${{ github.event.inputs.image_sha == '' }}
         uses: dawidd6/action-download-artifact@v2
         with:
-          workflow: "CI - Build, Test, Scan, Push"  
+          workflow: "CI - Build, Test, Scan, Push"
           workflow_conclusion: success
           branch: main
           name: image-sha
@@ -36,7 +36,6 @@ jobs:
           else
             IMAGE_TAG=$(cat ./artifact/image-sha.txt)
           fi
-
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:$IMAGE_TAG
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
           echo "Using IMAGE: $IMAGE"
@@ -53,15 +52,11 @@ jobs:
           microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
           microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
 
-      # 6. Ensure all pods use the new image
-      - name: Restart pods to pick new image
-        run: |
-          microk8s kubectl -n telecom rollout restart deployment/telecom-api
-          microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
-
-      # 7. Verify pod status and deployed image
+      # 6. Verify pod status and deployed image
       - name: Check pods and images
         run: |
+          echo "Waiting a few seconds for pods to settle..."
+          sleep 10
           microk8s kubectl -n telecom get pods -o wide
           microk8s kubectl -n telecom get deployment telecom-api -o wide
           echo "Current images for all pods:"
