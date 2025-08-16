@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_sha:
-        description: 'Docker image SHA or tag to deploy (overrides latest)'
+        description: 'Docker image SHA or tag to deploy (leave empty to use last built SHA)'
         required: false
         default: ''
 
@@ -17,35 +17,48 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Determine image to deploy
+      # 2. If no SHA given, fetch from last successful CI run
+      - name: Download image-sha artifact
+        if: ${{ github.event.inputs.image_sha == '' }}
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: ci.yaml        # <-- must match your CI workflow filename
+          workflow_conclusion: success
+          name: image-sha
+          path: ./artifact
+
+      # 3. Resolve image tag
       - name: Set image
         run: |
-          IMAGE_TAG="${{ github.event.inputs.image_sha }}"
-          if [ -z "$IMAGE_TAG" ]; then
-            IMAGE_TAG="latest"
+          if [ -n "${{ github.event.inputs.image_sha }}" ]; then
+            IMAGE_TAG="${{ github.event.inputs.image_sha }}"
+          else
+            IMAGE_TAG=$(cat ./artifact/image-sha.txt)
           fi
+
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/telecom-customer-insights:$IMAGE_TAG
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          echo "Using IMAGE: $IMAGE"
 
-      # 3. Apply Kubernetes manifests
+      # 4. Apply Kubernetes manifests
       - name: Deploy manifests
         run: |
           microk8s kubectl apply -k k8s/
 
-      # 4. Update deployment image dynamically
+      # 5. Update deployment image dynamically
       - name: Update deployment image
         run: |
           echo "Updating deployment with image: $IMAGE"
           microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
           microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
 
-      # 5. Ensure all pods use the new image
+      # 6. Ensure all pods use the new image
       - name: Restart pods to pick new image
         run: |
           microk8s kubectl -n telecom rollout restart deployment/telecom-api
           microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
 
-      # 6. Verify pod status and deployed image
+      # 7. Verify pod status and deployed image
       - name: Check pods and images
         run: |
           microk8s kubectl -n telecom get pods -o wide
