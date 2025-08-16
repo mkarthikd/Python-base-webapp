@@ -1,3 +1,4 @@
+# cd.yaml
 name: CD - Deploy to MicroK8s
 
 on:
@@ -13,22 +14,17 @@ jobs:
     runs-on: [self-hosted, microk8s]
 
     steps:
-      # 1. Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      # 2. If no SHA given, fetch from last successful CI run
+      
+      # artifact
       - name: Download image-sha artifact
         if: ${{ github.event.inputs.image_sha == '' }}
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          workflow: "CI - Build, Test, Scan, Push"
-          workflow_conclusion: success
-          branch: main
           name: image-sha
           path: ./artifact
 
-      # 3. Resolve image tag
       - name: Set image
         run: |
           if [ -n "${{ github.event.inputs.image_sha }}" ]; then
@@ -40,19 +36,15 @@ jobs:
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
           echo "Using IMAGE: $IMAGE"
 
-      # 4. Apply Kubernetes manifests
       - name: Deploy manifests
-        run: |
-          microk8s kubectl apply -k k8s/
+        run: microk8s kubectl apply -k k8s/
 
-      # 5. Update deployment image dynamically
       - name: Update deployment image
         run: |
           echo "Updating deployment with image: $IMAGE"
           microk8s kubectl -n telecom set image deployment/telecom-api telecom-api=$IMAGE
           microk8s kubectl -n telecom rollout status deployment/telecom-api --timeout=180s
 
-      # 6. Verify pod status and deployed image
       - name: Check pods and images
         run: |
           echo "Waiting a few seconds for pods to settle..."
