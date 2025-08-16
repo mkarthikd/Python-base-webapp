@@ -47,23 +47,27 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 8. Build & push multi-arch Docker image
+      # 8. Build & push multi-arch Docker image (tagged with commit SHA + latest)
       - name: Build and push multi-arch image
         run: |
+          IMAGE_SHA=${GITHUB_SHA::7}
+          IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          echo "Building and pushing $IMAGE:$IMAGE_SHA and latest"
+
           docker buildx create --use
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --push \
-            --cache-from=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
-            --cache-to=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest,mode=max \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest .
+            -t $IMAGE:$IMAGE_SHA \
+            -t $IMAGE:latest .
+
+          echo "$IMAGE_SHA" > image-sha.txt
 
       # 9. Snyk Python Scan
       - name: Setup Node.js & Snyk CLI
         uses: actions/setup-node@v3
         with:
-          node-version: '24'
+          node-version: '20'   # node 24 doesn’t exist yet, fixed
       - name: Install Snyk CLI
         run: npm install -g snyk
       - name: Snyk Python Scan
@@ -80,13 +84,7 @@ jobs:
           image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           args: --file=Dockerfile --severity-threshold=medium
 
-      # 11. Output image SHA for CD
-      - name: Output image SHA
-        run: |
-          echo "IMAGE_SHA=${{ github.sha }}" >> $GITHUB_ENV
-          echo "${{ github.sha }}" > image-sha.txt
-
-      # 12. Upload image SHA as artifact for CD workflow
+      # 11. Upload image SHA artifact for CD workflow
       - name: Upload image SHA artifact
         uses: actions/upload-artifact@v4
         with:
