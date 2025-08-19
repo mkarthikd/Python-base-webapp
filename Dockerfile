@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 COPY app/main.py ./main.py
+COPY app/static ./static
 
 # Generate synthetic customers.csv into /data at build time
 RUN mkdir -p /data && \
