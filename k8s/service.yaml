@@ -6,7 +6,7 @@ metadata:
 spec:
   selector:
     app: telecom-api
-  type: ClusterIP
+  type: LoadBalancer
   ports:
     - port: 80
       targetPort: 5000

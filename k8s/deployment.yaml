@@ -22,9 +22,3 @@ spec:
           env:
             - name: CUSTOMER_DATA
               value: "/data/customers.csv"
-          volumeMounts:
-            - name: customer-data
-              mountPath: /data
-      volumes:
-        - name: customer-data
-          emptyDir: {}
