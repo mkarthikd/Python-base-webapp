@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 import os
 import pandas as pd
 
@@ -6,9 +6,9 @@ from app.model.recommender import recommend_plan, PLAN_CATALOG
 
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return "Welcome to the Telecom Customer Insights API"
+@app.route("/")
+def dashboard():
+    return send_from_directory("static", "index.html")
 
 DATA_PATH = os.environ.get("CUSTOMER_DATA", "app/data/customers.csv")
 _customers_cache = None
