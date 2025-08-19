@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Telecom Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; color: #333; }
+    header { background: #007bff; padding: 15px; color: white; text-align: center; font-size: 1.5em; }
+    nav { display: flex; justify-content: center; background: #0056b3; }
+    nav button { flex: 1; padding: 12px; background: #0056b3; border: none; color: white; font-size: 1em; cursor: pointer; }
+    nav button:hover { background: #004494; }
+    .container { padding: 20px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .btn { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .btn:hover { background: #0056b3; }
+    .input-box { margin: 5px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
+    .result { margin-top: 20px; padding: 10px; background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: pre-wrap; }
+    canvas { margin-top: 20px; background: #fff; border-radius: 6px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <header>📊 Telecom API Dashboard</header>
+  <nav>
+    <button onclick="showSection('customers')">Customers</button>
+    <button onclick="showSection('recommend')">Recommendations</button>
+    <button onclick="showSection('savings')">Savings</button>
+    <button onclick="showSection('upsell')">Upsell</button>
+    <button onclick="showSection('summary')">Summary</button>
+    <button onclick="callApi('/health')">Health</button>
+  </nav>
+
+  <div class="container">
+    <!-- Customers -->
+    <div id="customers" class="section active">
+      <h2>Customers</h2>
+      <input id="customerLimit" type="number" class="input-box" placeholder="Enter limit (e.g. 5)" />
+      <button class="btn" onclick="callApi('/customers?limit=' + document.getElementById('customerLimit').value)">Get Customers</button>
+    </div>
+
+    <!-- Recommend -->
+    <div id="recommend" class="section">
+      <h2>Recommendations</h2>
+      <input id="recommendId" type="number" class="input-box" placeholder="Customer ID (e.g. 1)" />
+      <button class="btn" onclick="callApi('/recommend/' + document.getElementById('recommendId').value)">Get Recommendation</button>
+    </div>
+
+    <!-- Savings -->
+    <div id="savings" class="section">
+      <h2>Top Savings</h2>
+      <input id="savingsLimit" type="number" class="input-box" placeholder="Limit (e.g. 5)" />
+      <input id="savingsRegion" type="text" class="input-box" placeholder="Region (optional)" />
+      <button class="btn" onclick="{
+        let path = '/top_savings?limit=' + document.getElementById('savingsLimit').value;
+        let region = document.getElementById('savingsRegion').value;
+        if(region) path += '&region=' + region;
+        callApi(path, 'savings');
+      }">Get Savings</button>
+    </div>
+
+    <!-- Upsell -->
+    <div id="upsell" class="section">
+      <h2>Top Upsell</h2>
+      <input id="upsellLimit" type="number" class="input-box" placeholder="Limit (e.g. 5)" />
+      <input id="upsellRegion" type="text" class="input-box" placeholder="Region (optional)" />
+      <button class="btn" onclick="{
+        let path = '/top_upsell?limit=' + document.getElementById('upsellLimit').value;
+        let region = document.getElementById('upsellRegion').value;
+        if(region) path += '&region=' + region;
+        callApi(path, 'upsell');
+      }">Get Upsell</button>
+    </div>
+
+    <!-- Summary -->
+    <div id="summary" class="section">
+      <h2>Summary Stats</h2>
+      <input id="summaryRegion" type="text" class="input-box" placeholder="Region (optional)" />
+      <button class="btn" onclick="{
+        let path = '/summary_stats';
+        let region = document.getElementById('summaryRegion').value;
+        if(region) path += '?region=' + region;
+        callApi(path, 'summary');
+      }">Get Summary</button>
+    </div>
+
+    <div class="result" id="result">Results will appear here...</div>
+    <canvas id="chart" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    let chart;
+
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.getElementById("result").innerText = "Results will appear here...";
+      if (chart) chart.destroy();
+    }
+
+    function callApi(path, chartType) {
+      fetch(path)
+        .then(res => res.json())
+        .then(data => {
+          if (chartType) {
+            renderChart(data, chartType);
+            document.getElementById("result").innerText = "Chart rendered for " + chartType;
+          } else {
+            document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+            if (chart) chart.destroy();
+          }
+        })
+        .catch(err => {
+          document.getElementById("result").innerText = "Error: " + err;
+        });
+    }
+
+    function renderChart(data, type) {
+      const ctx = document.getElementById('chart').getContext('2d');
+      if (chart) chart.destroy();
+
+      if (type === 'savings' || type === 'upsell') {
+        let labels = data.map(d => d.name || d.customer_id);
+        let values = type === 'savings' ? data.map(d => d.savings || d.avg_monthly_spend)
+                                        : data.map(d => d.upsell || d.avg_monthly_data_gb);
+
+        chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: type === 'savings' ? 'Potential Savings' : 'Upsell Opportunity',
+              data: values,
+              backgroundColor: 'rgba(54, 162, 235, 0.6)'
+            }]
+          },
+          options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+
+      } else if (type === 'summary') {
+        if (data.avg_monthly_data_gb) {
+          chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ["Data GB", "Minutes", "SMS"],
+              datasets: [{
+                data: [data.avg_monthly_data_gb, data.avg_monthly_minutes, data.avg_monthly_sms],
+                backgroundColor: ["#36A2EB", "#FF6384", "#FFCE56"]
+              }]
+            }
+          });
+        } else {
+          let labels = Object.keys(data);
+          let values = Object.values(data).map(d => d.total_customers || 0);
+          chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels,
+              datasets: [{
+                data: values,
+                backgroundColor: ["#36A2EB","#FF6384","#FFCE56","#4BC0C0","#9966FF","#FF9F40"]
+              }]
+            }
+          });
+        }
+      }
+    }
+
+    // 🚀 Load default summary chart on startup
+    window.onload = function() {
+      callApi('/summary_stats', 'summary');
+    };
+  </script>
+</body>
+</html>
