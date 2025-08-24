@@ -1,0 +1,7 @@
+apiVersion: v2
+name: telecom-app
+description: A Helm chart for deploying the Telecom App
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+

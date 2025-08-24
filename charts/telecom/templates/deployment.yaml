@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telecom-api
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: telecom-api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: telecom-api
+  template:
+    metadata:
+      labels:
+        app: telecom-api
+    spec:
+      containers:
+        - name: telecom-api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: CUSTOMER_DATA
+              value: {{ .Values.env.CUSTOMER_DATA | quote }}
+            {{- if .Values.secrets.enabled }}
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: APP_SECRET
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 20
