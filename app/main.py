@@ -4,11 +4,18 @@ import pandas as pd
 
 from app.model.recommender import recommend_plan, PLAN_CATALOG
 
+# Read secret from environment (will come from K8s Secret)
+app_secret = os.environ.get("APP_SECRET", "default_secret")
+
 app = Flask(__name__)
+# Use the secret as Flask's built-in SECRET_KEY (for sessions, CSRF, etc.)
+app.config["SECRET_KEY"] = app_secret
+
 
 @app.route("/")
 def dashboard():
     return send_from_directory("static", "index.html")
+
 
 DATA_PATH = os.environ.get("CUSTOMER_DATA", "app/data/customers.csv")
 _customers_cache = None
@@ -36,6 +43,7 @@ def load_data():
 def health():
     return jsonify(status="ok")
 
+
 @app.get("/customers")
 def customers():
     df = load_data()
@@ -48,7 +56,6 @@ def customers():
 
     sample = df.sample(min(limit, len(df)), random_state=42)
 
-    # Convert DataFrame to list of dicts with name & region included
     output = sample[[
         "customer_id", "name", "region",
         "avg_monthly_data_gb", "avg_monthly_minutes",
@@ -68,6 +75,7 @@ def recommend(customer_id: int):
         return jsonify(error="Customer not found"), 404
     rec = recommend_plan(row.iloc[0].to_dict())
     return jsonify(rec)
+
 
 @app.get("/top_savings")
 def top_savings():
@@ -133,14 +141,12 @@ def top_upsell():
     return jsonify(top_upsell=results[:limit], total=len(results))
 
 
-
 @app.get("/summary_stats")
 def summary_stats():
     df = load_data()
     if df.empty:
         return jsonify(error="No data loaded"), 404
 
-    # Optional region filter
     region_filter = request.args.get("region")
     if region_filter:
         df = df[df["region"].str.lower() == region_filter.lower()]

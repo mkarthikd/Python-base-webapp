@@ -1,0 +1,22 @@
+namespace: telecom
+
+image:
+  repository: docker.io/karthikmd06/telecom-customer-insights
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 5000
+
+env:
+  CUSTOMER_DATA: "/data/customers.csv"
+
+secrets:
+  enabled: true
+  name: telecom-app-secrets
+  data:
+    APP_SECRET: "changeme" 
