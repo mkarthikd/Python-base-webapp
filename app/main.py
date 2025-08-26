@@ -18,11 +18,12 @@ def dashboard():
 
 
 DATA_PATH = os.environ.get("CUSTOMER_DATA", "app/data/customers.csv")
-_customers_cache = None
+_customers_cache = pd.read_csv(DATA_PATH) if os.path.exists(DATA_PATH) else pd.DataFrame()
+
 
 def load_data():
     global _customers_cache
-    if _customers_cache is None:
+    if _customers_cache is None or _customers_cache.empty:
         if os.path.exists(DATA_PATH):
             df = pd.read_csv(DATA_PATH)
             # Ensure required columns exist, even if missing in CSV
@@ -39,6 +40,36 @@ def load_data():
     return _customers_cache
 
 
+def apply_filters_sort_limit(df, results, default_sort="customer_id", default_order="asc"):
+    """
+    Apply region filter, sorting, and limit based on query params.
+    """
+    # Optional region filter
+    region_filter = request.args.get("region")
+    if region_filter:
+        df = df[df["region"].str.lower() == region_filter.lower()]
+        results = [r for r in results if r.get("region", "").lower() == region_filter.lower()]
+
+    # Sorting params
+    sort_col = request.args.get("sort", default_sort)
+    sort_order = request.args.get("order", default_order)
+
+    if results and sort_col in results[0]:
+        results = sorted(
+            results,
+            key=lambda x: x[sort_col],
+            reverse=(sort_order.lower() == "desc")
+        )
+
+    # Limit param
+    try:
+        limit = int(request.args.get("limit", 10))
+    except:
+        limit = 10
+
+    return results[:limit], len(results)
+
+
 @app.get("/health")
 def health():
     return jsonify(status="ok")
@@ -49,20 +80,15 @@ def customers():
     df = load_data()
     if df.empty:
         return jsonify(customers=[], total=0)
-    try:
-        limit = int(request.args.get("limit", 100))
-    except:
-        limit = 100
 
-    sample = df.sample(min(limit, len(df)), random_state=42)
-
-    output = sample[[
+    results = df[[
         "customer_id", "name", "region",
         "avg_monthly_data_gb", "avg_monthly_minutes",
         "avg_monthly_sms", "avg_monthly_spend"
     ]].to_dict(orient="records")
 
-    return jsonify(customers=output, total=int(len(df)))
+    results, total = apply_filters_sort_limit(df, results, default_sort="customer_id")
+    return jsonify(customers=results, total=total)
 
 
 @app.get("/recommend/<int:customer_id>")
@@ -83,15 +109,10 @@ def top_savings():
     if df.empty:
         return jsonify(error="No data loaded"), 404
 
-    region_filter = request.args.get("region")
-    if region_filter:
-        df = df[df["region"].str.lower() == region_filter.lower()]
-
     results = []
     for _, row in df.iterrows():
         rec = recommend_plan(row.to_dict())
-        savings = rec.get("estimated_savings", 0)
-        if savings > 0:
+        if rec.get("estimated_savings", 0) > 0:
             results.append({
                 "customer_id": row["customer_id"],
                 "name": row["name"],
@@ -99,14 +120,8 @@ def top_savings():
                 **rec
             })
 
-    results = sorted(results, key=lambda x: x["estimated_savings"], reverse=True)
-
-    try:
-        limit = int(request.args.get("limit", 10))
-    except:
-        limit = 10
-
-    return jsonify(top_savings=results[:limit], total=len(results))
+    results, total = apply_filters_sort_limit(df, results, default_sort="estimated_savings", default_order="desc")
+    return jsonify(top_savings=results, total=total)
 
 
 @app.get("/top_upsell")
@@ -115,15 +130,10 @@ def top_upsell():
     if df.empty:
         return jsonify(error="No data loaded"), 404
 
-    region_filter = request.args.get("region")
-    if region_filter:
-        df = df[df["region"].str.lower() == region_filter.lower()]
-
     results = []
     for _, row in df.iterrows():
         rec = recommend_plan(row.to_dict())
-        savings = rec.get("estimated_savings", 0)
-        if savings < 0:
+        if rec.get("estimated_savings", 0) < 0:
             results.append({
                 "customer_id": row["customer_id"],
                 "name": row["name"],
@@ -131,14 +141,8 @@ def top_upsell():
                 **rec
             })
 
-    results = sorted(results, key=lambda x: x["estimated_savings"])  # Most negative first
-
-    try:
-        limit = int(request.args.get("limit", 10))
-    except:
-        limit = 10
-
-    return jsonify(top_upsell=results[:limit], total=len(results))
+    results, total = apply_filters_sort_limit(df, results, default_sort="estimated_savings", default_order="asc")
+    return jsonify(top_upsell=results, total=total)
 
 
 @app.get("/summary_stats")
@@ -147,6 +151,7 @@ def summary_stats():
     if df.empty:
         return jsonify(error="No data loaded"), 404
 
+    # Apply region filter before stats
     region_filter = request.args.get("region")
     if region_filter:
         df = df[df["region"].str.lower() == region_filter.lower()]
@@ -158,20 +163,24 @@ def summary_stats():
     total_spend = df["avg_monthly_spend"].sum()
     avg_spend = df["avg_monthly_spend"].mean()
 
-    savings_count = 0
-    upsell_count = 0
-    total_savings_amount = 0
-    total_upsell_amount = 0
+    # Recommendations for all
+    df["rec"] = df.apply(lambda row: recommend_plan(row.to_dict()), axis=1)
+    df["savings"] = df["rec"].apply(lambda r: r.get("estimated_savings", 0))
 
-    for _, row in df.iterrows():
-        rec = recommend_plan(row.to_dict())
-        savings = rec.get("estimated_savings", 0)
-        if savings > 0:
-            savings_count += 1
-            total_savings_amount += savings
-        elif savings < 0:
-            upsell_count += 1
-            total_upsell_amount += abs(savings)
+    # Prepare base results
+    results = df.to_dict(orient="records")
+
+    # Reuse helper for sorting/limit
+    results, total = apply_filters_sort_limit(df, results, default_sort="savings", default_order="desc")
+
+    # Aggregate stats
+    savings_mask = df["savings"] > 0
+    upsell_mask = df["savings"] < 0
+
+    savings_count = int(savings_mask.sum())
+    upsell_count = int(upsell_mask.sum())
+    total_savings_amount = float(df.loc[savings_mask, "savings"].sum())
+    total_upsell_amount = float(-df.loc[upsell_mask, "savings"].sum())
 
     return jsonify({
         "region": region_filter if region_filter else "All",
@@ -185,7 +194,8 @@ def summary_stats():
         "upsell_opportunities": {
             "count": upsell_count,
             "total_potential_revenue": round(total_upsell_amount, 2)
-        }
+        },
+        "sample": results  # shows top N rows after sort/filter
     })
 
 
