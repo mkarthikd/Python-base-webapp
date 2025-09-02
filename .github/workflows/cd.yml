@@ -88,7 +88,7 @@ jobs:
       # 3. Apply Kubernetes manifests
       - name: Deploy manifests
         run: |
-          microk8s kubectl apply -k k8s/
+          microk8s kubectl apply -k charts/telecom/templates/
 
       # 4. Update deployment image dynamically with environment variables
       - name: Update deployment image and env

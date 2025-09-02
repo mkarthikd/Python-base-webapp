@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: telecom
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+    targetRevision: main
+    path: charts/telecom        # IMPORTANT: path only (no 'chart:' here)
+    helm:
+      releaseName: telecom
+      values: |
+        namespace: telecom
+        image:
+          repository: docker.io/karthikmd06/telecom-customer-insights
+          tag: latest
+          pullPolicy: IfNotPresent
+
+        replicaCount: 2
+
+        service:
+          type: LoadBalancer
+          port: 80
+          targetPort: 5000
+
+        env:
+          CUSTOMER_DATA: "/data/customers.csv"
+
+        secrets:
+          enabled: true
+          name: telecom-app-secrets
+          data:
+            APP_SECRET: "secret@123"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telecom
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
