@@ -1,0 +1,46 @@
+# =============================
+# ArgoCD Configs
+# =============================
+configs:
+  cm:
+    admin.enabled: true
+
+    # GitHub repo config (uses secret git-creds)
+    repositories: |
+      - url: https://github.com/mkarthikd/Python-base-webapp.git
+        usernameSecret:
+          name: git-creds
+          key: username
+        passwordSecret:
+          name: git-creds
+          key: password
+
+  # DockerHub credential template (for Image Updater)
+  credentialTemplates:
+    dockerhub-creds:
+      url: https://index.docker.io/v1/
+      usernameSecret:
+        name: dockerhub-creds
+        key: username
+      passwordSecret:
+        name: dockerhub-creds
+        key: password
+
+# =============================
+# ArgoCD Server (UI)
+# =============================
+server:
+  service:
+    type: LoadBalancer
+
+# =============================
+# Image Updater
+# =============================
+imageUpdater:
+  enabled: true
+  config:
+    registries:
+      - name: dockerhub
+        api_url: https://index.docker.io/v1/
+        prefix: docker.io
+        credSecret: dockerhub-creds
