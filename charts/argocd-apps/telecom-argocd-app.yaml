@@ -3,12 +3,18 @@ kind: Application
 metadata:
   name: telecom
   namespace: argocd
+  annotations:
+    # ArgoCD Image Updater annotations
+    argocd-image-updater.argoproj.io/image-list: telecom=docker.io/karthikmd06/telecom-customer-insights
+    argocd-image-updater.argoproj.io/telecom.update-strategy: latest
+    argocd-image-updater.argoproj.io/telecom.allow-tags: regexp:^.*$
+    argocd-image-updater.argoproj.io/telecom.pull-secret: pullsecret:argocd/dockerhub
 spec:
   project: default
   source:
     repoURL: https://github.com/mkarthikd/Python-base-webapp.git
     targetRevision: main
-    path: charts/telecom        # IMPORTANT: path only (no 'chart:' here)
+    path: charts/telecom
     helm:
       releaseName: telecom
       values: |
@@ -17,17 +23,13 @@ spec:
           repository: docker.io/karthikmd06/telecom-customer-insights
           tag: latest
           pullPolicy: IfNotPresent
-
         replicaCount: 2
-
         service:
           type: LoadBalancer
           port: 80
           targetPort: 5000
-
         env:
           CUSTOMER_DATA: "/data/customers.csv"
-
         secrets:
           enabled: true
           name: telecom-app-secrets
@@ -42,3 +44,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
