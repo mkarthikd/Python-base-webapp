@@ -1,21 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argocd-self
+  name: telecom
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://argoproj.github.io/argo-helm
-    chart: argo-cd
-    targetRevision: 7.6.12   # match your Helm repo version
+    repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+    targetRevision: main
+    path: charts/telecom
     helm:
-      releaseName: argocd
-      valueFiles:
-        - charts/argocd-apps/values-argocd.yaml
+      releaseName: telecom
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: telecom
   syncPolicy:
     automated:
       prune: true

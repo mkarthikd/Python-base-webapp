@@ -1,18 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argocd-self
+  name: apps-of-apps
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://argoproj.github.io/argo-helm
-    chart: argo-cd
-    targetRevision: 7.6.12   # match your Helm repo version
-    helm:
-      releaseName: argocd
-      valueFiles:
-        - charts/argocd-apps/values-argocd.yaml
+    repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+    targetRevision: main
+    path: charts/argocd-apps
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
