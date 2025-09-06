@@ -92,8 +92,17 @@ jobs:
           commit_message: "ci: bump version to ${{ env.NEW_VERSION }}"
           file_pattern: VERSION
 
+      # Cache Docker layers
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile', 'requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       # 11. Build & push multi-arch Docker image (versioned only)
-      - name: Build and push image
+      - name: Build and push Docker image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
           VERSION=${{ steps.bump.outputs.version }}
@@ -102,6 +111,9 @@ jobs:
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --push \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
+            --build-arg PIP_CACHE_DIR=/root/.cache/pip \
             -t $IMAGE:$VERSION .
 
       # 12. Snyk Python Scan
