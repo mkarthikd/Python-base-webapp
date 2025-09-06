@@ -105,19 +105,15 @@ jobs:
             TARGET_BRANCH=${GITHUB_HEAD_REF}
           fi
           echo "Pushing VERSION changes to branch $TARGET_BRANCH"
-
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           
           # Fetch latest changes and rebase
           git fetch origin $TARGET_BRANCH
-          git rebase origin/$TARGET_BRANCH
+          git rebase origin/$TARGET_BRANCH -X theirs
 
           # Commit VERSION bump if needed
           git add VERSION
-          git diff --cached --quiet || git commit -m "ci: bump version ${{ steps.bump.outputs.version }}"
-          
+          git diff --cached --quiet || git commit -m "ci: bump version $NEW_VERSION"
+
           git push origin HEAD:$TARGET_BRANCH
 
       # 13. Cache Docker layers
