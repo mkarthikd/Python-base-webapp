@@ -88,6 +88,7 @@ jobs:
 
       # 10. Configure Git for committing VERSION
       - name: Configure Git
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -150,7 +151,7 @@ jobs:
           # else
           #   VERSION="pr-${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
           # fi
-          echo "Building and pushing $IMAGE:$VERSION"
+          echo "Building and pushing $IMAGE:${IMAGE_TAG}"
           docker buildx create --use
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
@@ -158,7 +159,7 @@ jobs:
             --cache-from=type=local,src=/tmp/.buildx-cache \
             --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
             --build-arg PIP_CACHE_DIR=/root/.cache/pip \
-            -t $IMAGE:$VERSION .
+            -t $IMAGE:${IMAGE_TAG} .
 
       # 15. Setup Node.js & Snyk CLI
       - name: Setup Node.js & Snyk CLI
