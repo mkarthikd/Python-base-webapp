@@ -61,6 +61,7 @@ jobs:
 
       # 9. Auto bump version (semver patch)
       - name: Bump version
+        if: github.ref == 'refs/heads/main'  # <- only on main branch
         id: bump
         run: |
           VERSION=$(cat VERSION)
