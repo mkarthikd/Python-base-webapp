@@ -104,28 +104,14 @@ jobs:
       - name: Push VERSION changes
         if: github.ref == 'refs/heads/main'
         run: |
-          # TARGET_BRANCH=${GITHUB_REF_NAME}
-          # if [ -n "${GITHUB_HEAD_REF}" ]; then
-          #   TARGET_BRANCH=${GITHUB_HEAD_REF}
-          # fi
-          # echo "Pushing VERSION changes to branch $TARGET_BRANCH"
-          
-          # # Fetch latest changes and rebase
-          # git fetch origin $TARGET_BRANCH
-          # git rebase origin/$TARGET_BRANCH -X theirs
-
-          # # Commit VERSION bump if needed
-          # git add VERSION
-          # git diff --cached --quiet || git commit -m "ci: bump version $NEW_VERSION"
-
           git push origin HEAD:main
 
       # 13. Cache Docker layers
-      - name: Cache Docker layers
+      - name: Cache pip
         uses: actions/cache@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile', 'requirements.txt') }}
+          path: /root/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-buildx-
 
@@ -146,19 +132,13 @@ jobs:
       - name: Build and push Docker image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-          # if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-          #   VERSION=${{ steps.bump.outputs.version }}
-          # else
-          #   VERSION="pr-${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
-          # fi
           echo "Building and pushing $IMAGE:${IMAGE_TAG}"
-          docker buildx create --use
+          docker buildx create --use --name mybuilder
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --push \
             --cache-from=type=local,src=/tmp/.buildx-cache \
             --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
-            --build-arg PIP_CACHE_DIR=/root/.cache/pip \
             -t $IMAGE:${IMAGE_TAG} .
 
       # 15. Setup Node.js & Snyk CLI
