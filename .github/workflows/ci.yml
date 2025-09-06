@@ -128,7 +128,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-       - name: Set IMAGE_TAG
+      - name: Set IMAGE_TAG
         id: vars
         run: |
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
