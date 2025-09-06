@@ -130,7 +130,11 @@ jobs:
       - name: Build and push Docker image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-          VERSION=${{ steps.bump.outputs.version }}
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            VERSION=${{ steps.bump.outputs.version }}
+          else
+            VERSION="pr-${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
+          fi
           echo "Building and pushing $IMAGE:$VERSION"
           docker buildx create --use
           docker buildx build \
