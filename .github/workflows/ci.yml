@@ -100,7 +100,12 @@ jobs:
       # 12. Push VERSION changes back to the branch
       - name: Push VERSION changes
         run: |
-          git push origin HEAD:${{ github.ref_name }}
+          TARGET_BRANCH=${GITHUB_REF_NAME}
+          if [ -n "${GITHUB_HEAD_REF}" ]; then
+            TARGET_BRANCH=${GITHUB_HEAD_REF}
+          fi
+          echo "Pushing VERSION changes to branch $TARGET_BRANCH"
+          git push origin HEAD:$TARGET_BRANCH
 
       # 13. Cache Docker layers
       - name: Cache Docker layers
