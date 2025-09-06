@@ -3,7 +3,7 @@ name: CI - Build, Test, Scan, Push
 on:
   push:
     branches: [ "main" ]
-  pull_request:
+  pull_request: {}
 
 permissions:
   contents: write
@@ -61,6 +61,7 @@ jobs:
 
       # 9. Auto bump version (semver patch)
       - name: Bump version
+        if: github.ref == 'refs/heads/main'  # <- only on main branch
         id: bump
         run: |
           VERSION=$(cat VERSION)
@@ -87,34 +88,37 @@ jobs:
 
       # 10. Configure Git for committing VERSION
       - name: Configure Git
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       # 11. Commit VERSION changes if any
       - name: Commit VERSION changes
+        if: github.ref == 'refs/heads/main'
         run: |
           git add VERSION
           git diff --cached --quiet || git commit -m "ci: bump version to ${{ steps.bump.outputs.version }}"
 
       # 12. Push VERSION changes back to the branch
       - name: Push VERSION changes
+        if: github.ref == 'refs/heads/main'
         run: |
-          TARGET_BRANCH=${GITHUB_REF_NAME}
-          if [ -n "${GITHUB_HEAD_REF}" ]; then
-            TARGET_BRANCH=${GITHUB_HEAD_REF}
-          fi
-          echo "Pushing VERSION changes to branch $TARGET_BRANCH"
+          # TARGET_BRANCH=${GITHUB_REF_NAME}
+          # if [ -n "${GITHUB_HEAD_REF}" ]; then
+          #   TARGET_BRANCH=${GITHUB_HEAD_REF}
+          # fi
+          # echo "Pushing VERSION changes to branch $TARGET_BRANCH"
           
-          # Fetch latest changes and rebase
-          git fetch origin $TARGET_BRANCH
-          git rebase origin/$TARGET_BRANCH -X theirs
+          # # Fetch latest changes and rebase
+          # git fetch origin $TARGET_BRANCH
+          # git rebase origin/$TARGET_BRANCH -X theirs
 
-          # Commit VERSION bump if needed
-          git add VERSION
-          git diff --cached --quiet || git commit -m "ci: bump version $NEW_VERSION"
+          # # Commit VERSION bump if needed
+          # git add VERSION
+          # git diff --cached --quiet || git commit -m "ci: bump version $NEW_VERSION"
 
-          git push origin HEAD:$TARGET_BRANCH
+          git push origin HEAD:main
 
       # 13. Cache Docker layers
       - name: Cache Docker layers
@@ -125,12 +129,29 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
+      - name: Set IMAGE_TAG
+        id: vars
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "IMAGE_TAG=${{ steps.bump.outputs.version }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == refs/pull/* ]]; then
+            PR_NUMBER=$(echo "${{ github.ref }}" | cut -d'/' -f3)
+            echo "IMAGE_TAG=pr-${PR_NUMBER}-${GITHUB_SHA::7}" >> $GITHUB_ENV
+          else
+            SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
+            echo "IMAGE_TAG=${SAFE_BRANCH}-${GITHUB_SHA::7}" >> $GITHUB_ENV
+          fi
+
       # 14. Build & push multi-arch Docker image
       - name: Build and push Docker image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-          VERSION=${{ steps.bump.outputs.version }}
-          echo "Building and pushing $IMAGE:$VERSION"
+          # if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          #   VERSION=${{ steps.bump.outputs.version }}
+          # else
+          #   VERSION="pr-${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
+          # fi
+          echo "Building and pushing $IMAGE:${IMAGE_TAG}"
           docker buildx create --use
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
@@ -138,7 +159,7 @@ jobs:
             --cache-from=type=local,src=/tmp/.buildx-cache \
             --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
             --build-arg PIP_CACHE_DIR=/root/.cache/pip \
-            -t $IMAGE:$VERSION .
+            -t $IMAGE:${IMAGE_TAG} .
 
       # 15. Setup Node.js & Snyk CLI
       - name: Setup Node.js & Snyk CLI
@@ -156,13 +177,13 @@ jobs:
 
       # 17. Snyk Container Scan
       - name: Pull amd64 image for Snyk
-        run: docker pull --platform linux/amd64 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.bump.outputs.version }}
+        run: docker pull --platform linux/amd64 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
       - name: Snyk Container Scan
         uses: snyk/actions/docker@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.bump.outputs.version }}
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
           args: --file=Dockerfile --severity-threshold=medium
 
       # 18. Upload image SHA artifact for CD workflow
