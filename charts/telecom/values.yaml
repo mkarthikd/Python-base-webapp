@@ -2,8 +2,10 @@ namespace: telecom
 
 image:
   repository: docker.io/karthikmd06/telecom-customer-insights
-  tag: "1.0.0" #image version
+  tag: "1.0.0" # default, will be overwritten by ArgoCD Image Updater
   pullPolicy: IfNotPresent
+  pullSecrets:
+    - name: dockerhub  # ensures private image can be pulled
 
 replicaCount: 2
 

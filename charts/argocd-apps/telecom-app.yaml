@@ -8,6 +8,8 @@ metadata:
       telecom=docker.io/karthikmd06/telecom-customer-insights
     argocd-image-updater.argoproj.io/telecom.update-strategy: semver
     argocd-image-updater.argoproj.io/telecom.allow-tags: regexp:^([0-9]+\.[0-9]+\.[0-9]+)$
+    argocd-image-updater.argoproj.io/telecom.pull-secret: dockerhub
+    argocd-image-updater.argoproj.io/telecom.values: "image.tag"
 spec:
   project: default
   source:

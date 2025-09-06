@@ -15,8 +15,12 @@ spec:
       labels:
         app: telecom-api
     spec:
+      imagePullSecrets:
+        {{- range .Values.image.pullSecrets }}
+        - name: {{ .name }}
+        {{- end }}
       containers:
-        - name: telecom-api
+        - name: telecom
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
