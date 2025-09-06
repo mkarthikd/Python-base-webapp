@@ -22,43 +22,86 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 3. Install dependencies
+      # 3. Cache pip
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # 4. Install dependencies
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt pytest
 
-      # 4. Run unit tests
+      # 5. Run unit tests
       - name: Run unit tests
         run: PYTHONPATH=$PYTHONPATH:. pytest -q
 
-      # 5. Generate synthetic data for CI
+      # 6. Generate synthetic data for CI
       - name: Generate synthetic data
         run: python app/data/generate_synthetic.py --rows 5000 --out app/data/customers.csv
 
-      # 6. Docker Buildx setup
+      # 7. Docker Buildx setup
       - name: Docker setup Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 7. Docker login
+      # 8. Docker login
       - name: Docker login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 8. Build & push multi-arch Docker image (tagged with short SHA + latest)
-      - name: Build and push image (latest)
+      # 9. Auto bump version (semver patch bump by default)
+      - name: Bump version
+        id: bump
+        run: |
+          VERSION=$(cat VERSION)
+          echo "Current version: $VERSION"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          PATCH=$((PATCH + 1))
+
+          if [ $PATCH -ge 10 ]; then
+            PATCH=0
+            MINOR=$((MINOR + 1))
+          fi
+
+          if [ $MINOR -ge 4 ]; then
+            MINOR=0
+            MAJOR=$((MAJOR + 1))
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo $NEW_VERSION > VERSION
+
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      # 10. Commit bumped version
+      - name: Commit bumped VERSION
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: bump version to ${{ env.NEW_VERSION }}"
+          file_pattern: VERSION
+
+      # 11. Build & push multi-arch Docker image (versioned only)
+      - name: Build and push image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-          echo "Building and pushing $IMAGE:latest"
+          VERSION=${{ steps.bump.outputs.version }}
+          echo "Building and pushing $IMAGE:$VERSION"
           docker buildx create --use
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --push \
-            -t $IMAGE:latest .
+            -t $IMAGE:$VERSION .
 
-      # 9. Snyk Python Scan
+      # 12. Snyk Python Scan
       - name: Setup Node.js & Snyk CLI
         uses: actions/setup-node@v3
         with:
@@ -70,19 +113,19 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: snyk test --all-projects --severity-threshold=medium
 
-      # 10. Snyk Container Scan
+      # 13. Snyk Container Scan
       - name: Pull amd64 image for Snyk
-        run: docker pull --platform linux/amd64 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        run: docker pull --platform linux/amd64 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.bump.outputs.version }}
 
       - name: Snyk Container Scan
         uses: snyk/actions/docker@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.bump.outputs.version }}
           args: --file=Dockerfile --severity-threshold=medium
 
-      # 11. Upload image SHA artifact for CD workflow
+      # 14. Upload image SHA artifact for CD workflow
       - name: Upload image SHA artifact
         uses: actions/upload-artifact@v4
         with:
