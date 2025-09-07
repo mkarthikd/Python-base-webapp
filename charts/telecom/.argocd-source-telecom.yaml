@@ -4,5 +4,5 @@ helm:
     value: docker.io/karthikmd06/telecom-customer-insights
     forcestring: true
   - name: image.tag
-    value: 1.3.9
+    value: 2.0.0
     forcestring: true
