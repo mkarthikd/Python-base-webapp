@@ -137,8 +137,8 @@ jobs:
           docker buildx build \
             --platform linux/arm64 \
             --push \
-            --cache-from=type=registry,ref=$IMAGE:cache \
-            --cache-to=type=registry,ref=$IMAGE:cache,mode=max \
+            --cache-from=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/build-cache:telecom \
+            --cache-to=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/build-cache:telecom,mode=max \
             -t $IMAGE:${IMAGE_TAG} . 
 
       # 15. Setup Node.js & Snyk CLI
