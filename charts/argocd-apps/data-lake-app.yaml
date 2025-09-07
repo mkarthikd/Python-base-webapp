@@ -3,6 +3,15 @@ kind: Application
 metadata:
   name: data-lake
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: |
+      data-lake=docker.io/karthikmd06/telecom-customer-insights
+    argocd-image-updater.argoproj.io/data-lake.update-strategy: semver
+    argocd-image-updater.argoproj.io/data-lake.allow-tags: regexp:^([0-9]+\.[0-9]+\.[0-9]+)$
+    argocd-image-updater.argoproj.io/data-lake.pull-secret: pullsecret:argocd/dockerhub
+    argocd-image-updater.argoproj.io/data-lake.values: "image.tag"
+    argocd-image-updater.argoproj.io/git-credential-secret: git-creds
+    argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: default
   source:
