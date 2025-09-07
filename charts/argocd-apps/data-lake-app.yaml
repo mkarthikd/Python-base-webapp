@@ -1,22 +1,25 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: minio
+  name: data-lake
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/mkarthikd/Python-base-webapp.git
     targetRevision: main
-    path: charts/telecom/data-lake
+    path: charts/telecom/data-lake  # points to Helm chart folder
     helm:
-      releaseName: minio
+      releaseName: data-lake
       valueFiles:
-        - values-minio.yaml
+        - values.yaml               # your updated values file
   destination:
     server: https://kubernetes.default.svc
-    namespace: data-lake
+    namespace: telecom            # same namespace as your telecom app
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
