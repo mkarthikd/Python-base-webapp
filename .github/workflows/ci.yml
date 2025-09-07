@@ -107,13 +107,13 @@ jobs:
           git push origin HEAD:main
 
       # 13. Cache Docker layers
-      - name: Cache pip
+      - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: /root/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
 
       - name: Set IMAGE_TAG
         id: vars
@@ -135,11 +135,15 @@ jobs:
           echo "Building and pushing $IMAGE:${IMAGE_TAG}"
           docker buildx create --use --name mybuilder
           docker buildx build \
-            --platform linux/amd64,linux/arm64 \
+            --platform linux/arm64 \
             --push \
             --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
+            --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
             -t $IMAGE:${IMAGE_TAG} .
+
+          # move cache for next run
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache  
 
       # 15. Setup Node.js & Snyk CLI
       - name: Setup Node.js & Snyk CLI

@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-data-generator
+  namespace: {{ .Values.namespace }}
+spec:
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: data-generator
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - python
+                - app/data/generate_synthetic.py
+                - --rows
+                - "{{ .Values.cronjob.rows }}"
+                - --out
+                - "{{ .Values.cronjob.outputPath }}"
+              volumeMounts:
+                - name: data-storage
+                  mountPath: /data
+          volumes:
+            - name: data-storage
+              persistentVolumeClaim:
+                claimName: {{ .Values.pvc.name }}

@@ -35,21 +35,6 @@ spec:
                   name: {{ .Values.secrets.name }}
                   key: APP_SECRET
             {{- end }}
-            - name: MINIO_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: minio-credentials
-                  key: MINIO_ENDPOINT
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: minio-credentials
-                  key: MINIO_ACCESS_KEY
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: minio-credentials
-                  key: MINIO_SECRET_KEY
           readinessProbe:
             httpGet:
               path: /health
@@ -62,3 +47,10 @@ spec:
               port: {{ .Values.service.targetPort }}
             initialDelaySeconds: 10
             periodSeconds: 20
+          volumeMounts:
+            - name: data-storage
+              mountPath: /data
+      volumes:
+        - name: data-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvc.name }}

@@ -2,10 +2,10 @@ namespace: telecom
 
 image:
   repository: docker.io/karthikmd06/telecom-customer-insights
-  tag: "1.0.0" # default, will be overwritten by ArgoCD Image Updater
+  tag: "1.0.0" # default, can be overwritten by ArgoCD Image Updater
   pullPolicy: IfNotPresent
   pullSecrets:
-    - name: dockerhub  # ensures private image can be pulled
+    - name: dockerhub
 
 replicaCount: 2
 
@@ -21,7 +21,7 @@ secrets:
   enabled: true
   name: telecom-app-secrets
   data:
-    APP_SECRET: "changeme" 
+    APP_SECRET: "changeme"
 
 resources:
   requests:
@@ -30,3 +30,23 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
+
+# ---------------------------
+# PVC configuration
+# ---------------------------
+pvc:
+  enabled: true
+  name: data-lake-pvc
+  storageClassName: "hostpath-storage"
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+
+# ---------------------------
+# CronJob configuration
+# ---------------------------
+cronjob:
+  enabled: true
+  schedule: "0 * * * *"  # every hour
+  rows: 5000
+  outputPath: "/data/customers.csv"
