@@ -137,13 +137,9 @@ jobs:
           docker buildx build \
             --platform linux/arm64 \
             --push \
-            --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
-            -t $IMAGE:${IMAGE_TAG} .
-
-          # move cache for next run
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache  
+            --cache-from=type=registry,ref=$IMAGE:cache \
+            --cache-to=type=registry,ref=$IMAGE:cache,mode=max \
+            -t $IMAGE:${IMAGE_TAG} . 
 
       # 15. Setup Node.js & Snyk CLI
       - name: Setup Node.js & Snyk CLI
