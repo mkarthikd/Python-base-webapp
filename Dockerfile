@@ -31,6 +31,8 @@ COPY app/main.py ./main.py
 COPY app/static ./static
 
 # Generate synthetic data for CI/first run
+# Add /install/lib/python3.11/site-packages to PYTHONPATH temporarily
+ENV PYTHONPATH=/install/lib/python3.11/site-packages
 RUN mkdir -p /data \
     && python app/data/generate_synthetic.py --rows 5000 --out /data/customers.csv
 
