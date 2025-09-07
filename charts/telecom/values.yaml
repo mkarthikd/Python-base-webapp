@@ -37,7 +37,7 @@ resources:
 pvc:
   enabled: true
   name: data-lake-pvc
-  storageClassName: "hostpath-storage"
+  storageClassName: "microk8s-hostpath"
   accessModes:
     - ReadWriteOnce
   size: 1Gi
