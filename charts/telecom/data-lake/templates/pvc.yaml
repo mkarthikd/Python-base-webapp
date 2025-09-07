@@ -5,12 +5,10 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   accessModes:
-    {{- range .Values.pvc.accessModes }}
-    - {{ . }}
-    {{- end }}
+    {{- toYaml .Values.pvc.accessModes | nindent 2 }}
   resources:
     requests:
       storage: {{ .Values.pvc.size }}
   {{- if .Values.pvc.storageClassName }}
-  storageClassName: {{ .Values.pvc.storageClassName }}
+  storageClassName: {{ .Values.pvc.storageClassName | quote }}
   {{- end }}
