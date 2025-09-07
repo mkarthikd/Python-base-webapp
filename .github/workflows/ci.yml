@@ -157,7 +157,7 @@ jobs:
 
       # 17. Snyk Container Scan
       - name: Pull amd64 image for Snyk
-        run: docker pull --platform linux/amd64 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+        run: docker pull --platform linux/arm64 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
       - name: Snyk Container Scan
         uses: snyk/actions/docker@master
         env:
