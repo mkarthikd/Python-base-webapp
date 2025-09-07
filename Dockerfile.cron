@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY upload_to_minio.py .
+
+RUN pip install pandas boto3 numpy
+
+CMD ["python", "upload_to_minio.py"]
