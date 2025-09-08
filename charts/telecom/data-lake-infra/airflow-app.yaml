@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: airflow
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://airflow.apache.org
+    chart: airflow
+    targetRevision: 1.13.0
+    helm:
+      valueFiles:
+        - charts/telecom/data-lake-infra/airflow/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-lake
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
