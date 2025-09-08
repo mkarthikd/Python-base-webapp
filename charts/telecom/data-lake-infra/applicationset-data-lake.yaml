@@ -53,17 +53,14 @@ spec:
       source:
         repoURL: '{{repoURL}}'
         targetRevision: '{{targetRevision}}'
-        {{- if .chart }}
+        # Use Helm keys only if the element has a chart
         chart: '{{chart}}'
         helm:
           releaseName: '{{name}}'
-          {{- if .valueFiles }}
           valueFiles:
             - '{{valueFiles}}'
-          {{- end }}
-        {{- else }}
+        # Use path only for raw manifests (like PVC)
         path: '{{path}}'
-        {{- end }}
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{namespace}}'
