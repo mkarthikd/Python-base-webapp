@@ -1,3 +1,80 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: data-lake-applicationset
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - name: postgres
+            repoURL: https://charts.bitnami.com/bitnami
+            chart: postgresql
+            targetRevision: 15.5.11
+            namespace: data-lake
+            valueFiles:
+              - charts/telecom/data-lake-infra/postgres/values.yaml
+
+          - name: airflow
+            repoURL: https://airflow.apache.org
+            chart: airflow
+            targetRevision: 1.13.0
+            namespace: data-lake
+            valueFiles:
+              - charts/telecom/data-lake-infra/airflow/values.yaml
+
+          - name: trino
+            repoURL: https://trinodb.github.io/charts
+            chart: trino
+            targetRevision: 0.13.0
+            namespace: data-lake
+            valueFiles:
+              - charts/telecom/data-lake-infra/trino/values.yaml
+
+          - name: metabase
+            repoURL: https://pmint93.github.io/helm-charts
+            chart: metabase
+            targetRevision: 0.12.0
+            namespace: data-lake
+            valueFiles:
+              - charts/telecom/data-lake-infra/metabase/values.yaml
+
+          - name: warehouse-pvc
+            repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+            path: charts/telecom/data-lake-infra/k8s/storage
+            targetRevision: main
+            namespace: data-lake
+
+  template:
+    metadata:
+      name: '{{name}}'
+    spec:
+      project: default
+      source:
+        repoURL: '{{repoURL}}'
+        targetRevision: '{{targetRevision}}'
+        {{- if .chart }}
+        chart: '{{chart}}'
+        helm:
+          releaseName: '{{name}}'
+          {{- if .valueFiles }}
+          valueFiles:
+            - '{{valueFiles}}'
+          {{- end }}
+        {{- else }}
+        path: '{{path}}'
+        {{- end }}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+
 # apiVersion: argoproj.io/v1alpha1
 # kind: ApplicationSet
 # metadata:
@@ -12,32 +89,69 @@
 #             chart: postgresql
 #             targetRevision: 15.5.11
 #             namespace: data-lake
-#             valueFiles:
-#               - charts/telecom/data-lake-infra/postgres/values.yaml
+#             helm:
+#               values: |
+#                 auth:
+#                   username: iceberg
+#                   password: icebergpass
+#                   database: iceberg
+#                 primary:
+#                   persistence:
+#                     enabled: true
+#                     size: 2Gi
 
 #           - name: airflow
 #             repoURL: https://airflow.apache.org
 #             chart: airflow
 #             targetRevision: 1.13.0
 #             namespace: data-lake
-#             valueFiles:
-#               - charts/telecom/data-lake-infra/airflow/values.yaml
+#             helm:
+#               values: |
+#                 postgresql:
+#                   enabled: false
+#                 externalDatabase:
+#                   type: postgres
+#                   host: postgres-postgresql.data-lake.svc.cluster.local
+#                   port: 5432
+#                   database: airflow
+#                   user: iceberg
+#                   password: icebergpass
+#                 persistence:
+#                   enabled: true
+#                   size: 2Gi
 
 #           - name: trino
 #             repoURL: https://trinodb.github.io/charts
 #             chart: trino
 #             targetRevision: 0.13.0
 #             namespace: data-lake
-#             valueFiles:
-#               - charts/telecom/data-lake-infra/trino/values.yaml
+#             helm:
+#               values: |
+#                 server:
+#                   workers: 1
+#                 catalog:
+#                   iceberg.properties: |
+#                     connector.name=iceberg
+#                     catalog.type=jdbc
+#                     catalog.jdbc.url=jdbc:postgresql://postgres-postgresql.data-lake.svc.cluster.local:5432/iceberg
+#                     catalog.jdbc.user=iceberg
+#                     catalog.jdbc.password=icebergpass
+#                     catalog.jdbc.driver=org.postgresql.Driver
+#                     warehouse=file:///data/warehouse
+#                 persistence:
+#                   enabled: true
+#                   size: 5Gi
 
 #           - name: metabase
 #             repoURL: https://pmint93.github.io/helm-charts
 #             chart: metabase
 #             targetRevision: 0.12.0
 #             namespace: data-lake
-#             valueFiles:
-#               - charts/telecom/data-lake-infra/metabase/values.yaml
+#             helm:
+#               values: |
+#                 persistence:
+#                   enabled: true
+#                   size: 1Gi
 
 #           - name: warehouse-pvc
 #             repoURL: https://github.com/mkarthikd/Python-base-webapp.git
@@ -67,110 +181,3 @@
 #         syncOptions:
 #           - CreateNamespace=true
 #           - ApplyOutOfSyncOnly=true
-
-apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
-metadata:
-  name: data-lake-applicationset
-  namespace: argocd
-spec:
-  generators:
-    - list:
-        elements:
-          - name: postgres
-            repoURL: https://charts.bitnami.com/bitnami
-            chart: postgresql
-            targetRevision: 15.5.11
-            namespace: data-lake
-            helm:
-              values: |
-                auth:
-                  username: iceberg
-                  password: icebergpass
-                  database: iceberg
-                primary:
-                  persistence:
-                    enabled: true
-                    size: 2Gi
-
-          - name: airflow
-            repoURL: https://airflow.apache.org
-            chart: airflow
-            targetRevision: 1.13.0
-            namespace: data-lake
-            helm:
-              values: |
-                postgresql:
-                  enabled: false
-                externalDatabase:
-                  type: postgres
-                  host: postgres-postgresql.data-lake.svc.cluster.local
-                  port: 5432
-                  database: airflow
-                  user: iceberg
-                  password: icebergpass
-                persistence:
-                  enabled: true
-                  size: 2Gi
-
-          - name: trino
-            repoURL: https://trinodb.github.io/charts
-            chart: trino
-            targetRevision: 0.13.0
-            namespace: data-lake
-            helm:
-              values: |
-                server:
-                  workers: 1
-                catalog:
-                  iceberg.properties: |
-                    connector.name=iceberg
-                    catalog.type=jdbc
-                    catalog.jdbc.url=jdbc:postgresql://postgres-postgresql.data-lake.svc.cluster.local:5432/iceberg
-                    catalog.jdbc.user=iceberg
-                    catalog.jdbc.password=icebergpass
-                    catalog.jdbc.driver=org.postgresql.Driver
-                    warehouse=file:///data/warehouse
-                persistence:
-                  enabled: true
-                  size: 5Gi
-
-          - name: metabase
-            repoURL: https://pmint93.github.io/helm-charts
-            chart: metabase
-            targetRevision: 0.12.0
-            namespace: data-lake
-            helm:
-              values: |
-                persistence:
-                  enabled: true
-                  size: 1Gi
-
-          - name: warehouse-pvc
-            repoURL: https://github.com/mkarthikd/Python-base-webapp.git
-            path: charts/telecom/data-lake-infra/k8s/storage
-            targetRevision: main
-            namespace: data-lake
-
-  template:
-    metadata:
-      name: '{{name}}'
-    spec:
-      project: default
-      source:
-        repoURL: '{{repoURL}}'
-        chart: '{{chart}}'
-        path: '{{path}}'
-        targetRevision: '{{targetRevision}}'
-        helm:
-          releaseName: '{{name}}'
-      destination:
-        server: https://kubernetes.default.svc
-        namespace: '{{namespace}}'
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
-          - ApplyOutOfSyncOnly=true
