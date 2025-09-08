@@ -1,8 +1,0 @@
-helm:
-  parameters:
-  - name: image.name
-    value: docker.io/karthikmd06/telecom-customer-insights
-    forcestring: true
-  - name: image.tag
-    value: 2.0.6
-    forcestring: true
