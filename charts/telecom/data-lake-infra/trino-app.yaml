@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trino
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://trinodb.github.io/charts
+    chart: trino
+    targetRevision: 0.13.0
+    helm:
+      valueFiles:
+        - charts/telecom/data-lake-infra/trino/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-lake
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

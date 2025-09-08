@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metabase
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://pmint93.github.io/helm-charts
+    chart: metabase
+    targetRevision: 0.12.0
+    helm:
+      valueFiles:
+        - charts/telecom/data-lake-infra/metabase/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-lake
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
