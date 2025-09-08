@@ -1,0 +1,27 @@
+server:
+  workers: 1
+  extraVolumes:
+    - name: warehouse
+      persistentVolumeClaim:
+        claimName: warehouse-pvc
+  extraVolumeMounts:
+    - name: warehouse
+      mountPath: /data/warehouse
+
+catalog:
+  iceberg.properties: |
+    connector.name=iceberg
+    catalog.type=jdbc
+    catalog.jdbc.url=jdbc:postgresql://postgres-postgresql.data-lake.svc.cluster.local:5432/iceberg
+    catalog.jdbc.user=iceberg
+    catalog.jdbc.password=icebergpass
+    catalog.jdbc.driver=org.postgresql.Driver
+    warehouse=file:///data/warehouse
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: microk8s-hostpath
+
+service:
+  type: LoadBalancer

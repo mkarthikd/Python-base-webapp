@@ -1,0 +1,28 @@
+postgresql:
+  enabled: false
+
+externalDatabase:
+  type: postgres
+  host: postgres-postgresql.data-lake.svc.cluster.local
+  port: 5432
+  database: airflow
+  user: iceberg
+  password: icebergpass
+
+persistence:
+  enabled: true
+  size: 2Gi
+  storageClass: microk8s-hostpath
+
+extraVolumes:
+  - name: warehouse
+    persistentVolumeClaim:
+      claimName: warehouse-pvc
+
+extraVolumeMounts:
+  - name: warehouse
+    mountPath: /data/warehouse
+
+web:
+  service:
+    type: LoadBalancer
