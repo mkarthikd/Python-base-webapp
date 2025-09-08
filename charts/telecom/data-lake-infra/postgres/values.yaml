@@ -1,0 +1,10 @@
+auth:
+  username: iceberg
+  password: icebergpass
+  database: iceberg
+
+primary:
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: microk8s-hostpath

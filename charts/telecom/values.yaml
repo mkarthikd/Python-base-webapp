@@ -30,23 +30,3 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
-
-# ---------------------------
-# PVC configuration
-# ---------------------------
-pvc:
-  enabled: true
-  name: data-lake-pvc
-  storageClassName: "microk8s-hostpath"
-  accessModes:
-    - ReadWriteOnce
-  size: 1Gi
-
-# ---------------------------
-# CronJob configuration
-# ---------------------------
-cronjob:
-  enabled: true
-  schedule: "0 * * * *"  # every hour
-  rows: 5000
-  outputPath: "/data/customers.csv"
