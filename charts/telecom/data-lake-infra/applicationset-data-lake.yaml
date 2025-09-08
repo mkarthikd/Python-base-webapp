@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: data-lake-applicationset
+  name: data-lake-helm-apps
   namespace: argocd
 spec:
   generators:
@@ -14,7 +14,6 @@ spec:
             namespace: data-lake
             valueFiles:
               - charts/telecom/data-lake-infra/postgres/values.yaml
-
           - name: airflow
             repoURL: https://airflow.apache.org
             chart: airflow
@@ -22,7 +21,6 @@ spec:
             namespace: data-lake
             valueFiles:
               - charts/telecom/data-lake-infra/airflow/values.yaml
-
           - name: trino
             repoURL: https://trinodb.github.io/charts
             chart: trino
@@ -30,7 +28,6 @@ spec:
             namespace: data-lake
             valueFiles:
               - charts/telecom/data-lake-infra/trino/values.yaml
-
           - name: metabase
             repoURL: https://pmint93.github.io/helm-charts
             chart: metabase
@@ -39,12 +36,6 @@ spec:
             valueFiles:
               - charts/telecom/data-lake-infra/metabase/values.yaml
 
-          - name: warehouse-pvc
-            repoURL: https://github.com/mkarthikd/Python-base-webapp.git
-            path: charts/telecom/data-lake-infra/k8s/storage
-            targetRevision: main
-            namespace: data-lake
-
   template:
     metadata:
       name: '{{name}}'
@@ -52,15 +43,12 @@ spec:
       project: default
       source:
         repoURL: '{{repoURL}}'
-        targetRevision: '{{targetRevision}}'
-        # Use Helm keys only if the element has a chart
         chart: '{{chart}}'
+        targetRevision: '{{targetRevision}}'
         helm:
           releaseName: '{{name}}'
           valueFiles:
             - '{{valueFiles}}'
-        # Use path only for raw manifests (like PVC)
-        path: '{{path}}'
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{namespace}}'
