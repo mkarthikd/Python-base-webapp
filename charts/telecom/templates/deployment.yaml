@@ -35,6 +35,9 @@ spec:
                   name: {{ .Values.secrets.name }}
                   key: APP_SECRET
             {{- end }}
+          volumeMounts:
+            - name: data-storage
+              mountPath: /data
           readinessProbe:
             httpGet:
               path: /health
@@ -47,9 +50,6 @@ spec:
               port: {{ .Values.service.targetPort }}
             initialDelaySeconds: 10
             periodSeconds: 20
-          volumeMounts:
-            - name: data-storage
-              mountPath: /data
       volumes:
         - name: data-storage
           persistentVolumeClaim:

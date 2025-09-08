@@ -30,3 +30,11 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
+
+pvc:
+  enabled: true
+  name: data-lake-pvc
+  storageClassName: microk8s-hostpath
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
