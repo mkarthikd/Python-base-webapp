@@ -17,3 +17,19 @@ readinessProbe:
   initialDelaySeconds: 120
   periodSeconds: 20
   failureThreshold: 6
+
+extraEnvVars:
+  - name: MB_DB_TYPE
+    value: postgres
+  - name: MB_DB_DBNAME
+    value: iceberg
+  - name: MB_DB_PORT
+    value: "5432"
+  - name: MB_DB_USER
+    value: iceberg
+  - name: MB_DB_PASS
+    value: icebergpass
+  - name: MB_DB_HOST
+    value: postgres-postgresql.data-lake.svc.cluster.local
+
+
