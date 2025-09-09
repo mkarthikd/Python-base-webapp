@@ -5,17 +5,29 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  source:
-    repoURL: https://charts.bitnami.com/bitnami
-    chart: postgresql
-    targetRevision: 15.5.11
-    helm:
-      valueFiles:
-        - charts/telecom/data-lake-infra/postgres/values.yaml
+  sources:
+    # 1st source = Bitnami Helm repo
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: postgresql
+      targetRevision: 15.5.11
+      helm:
+        releaseName: postgres
+        valueFiles:
+          - $values/charts/telecom/data-lake-infra/postgres/values.yaml
+
+    # 2nd source = Git repo (where values.yaml lives)
+    - repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+      targetRevision: main
+      ref: values
+
   destination:
     server: https://kubernetes.default.svc
     namespace: data-lake
+
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
