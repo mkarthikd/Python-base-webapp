@@ -5,10 +5,11 @@ metadata:
   namespace: argocd
 spec:
   project: default
+  # Multi-source structure: Helm chart + values from Git
   sources:
-    - repoURL: https://charts.bitnami.com/bitnami
+    - repoURL: https://pmint93.github.io/helm-charts
       chart: metabase
-      targetRevision: 7.3.3
+      targetRevision: 2.22.0
       helm:
         releaseName: metabase
         valueFiles:
