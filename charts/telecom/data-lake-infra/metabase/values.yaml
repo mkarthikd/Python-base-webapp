@@ -5,3 +5,15 @@ persistence:
 
 service:
   type: LoadBalancer
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 120
+  periodSeconds: 20
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 120
+  periodSeconds: 20
+  failureThreshold: 6
