@@ -6,7 +6,6 @@ metadata:
 spec:
   project: default
   sources:
-    # 1st source = Bitnami Helm repo
     - repoURL: https://charts.bitnami.com/bitnami
       chart: postgresql
       targetRevision: 15.5.11
@@ -14,12 +13,9 @@ spec:
         releaseName: postgres
         valueFiles:
           - $values/charts/telecom/data-lake-infra/postgres/values.yaml
-
-    # 2nd source = Git repo (where values.yaml lives)
     - repoURL: https://github.com/mkarthikd/Python-base-webapp.git
       targetRevision: main
       ref: values
-
   destination:
     server: https://kubernetes.default.svc
     namespace: data-lake

@@ -5,13 +5,17 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  source:
-    repoURL: https://trinodb.github.io/charts
-    chart: trino
-    targetRevision: 0.13.0
-    helm:
-      valueFiles:
-        - charts/telecom/data-lake-infra/trino/values.yaml
+  sources:
+    - repoURL: https://trinodb.github.io/charts
+      chart: trino
+      targetRevision: 0.13.0
+      helm:
+        releaseName: trino
+        valueFiles:
+          - $values/charts/telecom/data-lake-infra/trino/values.yaml
+    - repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+      targetRevision: main
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: data-lake
@@ -19,3 +23,6 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
