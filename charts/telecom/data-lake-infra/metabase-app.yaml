@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://pmint93.github.io/helm-charts
+    - repoURL: https://charts.bitnami.com/bitnami
       chart: metabase
-      targetRevision: 0.12.0
+      targetRevision: 7.3.3
       helm:
         releaseName: metabase
         valueFiles:
