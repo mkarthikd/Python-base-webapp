@@ -5,13 +5,17 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  source:
-    repoURL: https://pmint93.github.io/helm-charts
-    chart: metabase
-    targetRevision: 0.12.0
-    helm:
-      valueFiles:
-        - charts/telecom/data-lake-infra/metabase/values.yaml
+  sources:
+    - repoURL: https://pmint93.github.io/helm-charts
+      chart: metabase
+      targetRevision: 0.12.0
+      helm:
+        releaseName: metabase
+        valueFiles:
+          - $values/charts/telecom/data-lake-infra/metabase/values.yaml
+    - repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+      targetRevision: main
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: data-lake
@@ -19,3 +23,6 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
