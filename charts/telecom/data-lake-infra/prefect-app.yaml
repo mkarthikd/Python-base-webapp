@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prefect
+  namespace: argocd  
+spec:
+  project: default
+  sources:
+    - repoURL: https://prefecthq.github.io/prefect-helm/
+      chart: prefect-server
+      targetRevision: 2025.9.10182857  
+      helm:
+        releaseName: prefect
+        valueFiles:
+          - $values/charts/telecom/data-lake-infra/prefect/values.yaml
+    - repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-lake
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
