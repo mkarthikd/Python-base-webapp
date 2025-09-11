@@ -1,4 +1,4 @@
-# Disable internal Postgres, use your external DB
+# Use external PostgreSQL
 postgresql:
   enabled: false
 
@@ -6,28 +6,20 @@ externalDatabase:
   host: postgres-postgresql.data-lake.svc.cluster.local
   port: 5432
   database: prefect
-  user: prefectuser
-  password: prefectpass
+  user: iceberg
+  password: icebergpass
 
-# Storage for Prefect server metadata / logs
+# Prefect persistence (metadata, logs)
 persistence:
   enabled: true
   storageClass: microk8s-hostpath
   size: 5Gi
 
-# Prefect Server (UI + API)
+# Prefect server
 server:
   replicaCount: 1
-  service:
-    type: LoadBalancer
-    port: 4200
-  ingress:
-    enabled: false  # set to true if you want ingress
-    annotations: {}
-    hosts: []
-    tls: []
 
-# Prefect Worker configuration
+# Prefect workers
 worker:
   enabled: true
   replicaCount: 2
@@ -35,6 +27,15 @@ worker:
     workPool: default-agent-pool
   selfHostedServerApiConfig:
     apiUrl: http://prefect-server.data-lake.svc.cluster.local:4200/api
+
+# Expose Prefect Server
+service:
+  type: LoadBalancer
+  port: 4200
+
+# Disable ingress (optional, you can switch on later)
+ingress:
+  enabled: false
 
 # Resource requests/limits
 resources:
@@ -53,7 +54,7 @@ resources:
       cpu: "500m"
       memory: "512Mi"
 
-# Extra volumes if needed for data storage (example: mount /data/warehouse)
+# Extra storage if needed
 extraVolumes:
   - name: warehouse
     persistentVolumeClaim:
