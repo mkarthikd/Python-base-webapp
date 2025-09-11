@@ -23,6 +23,7 @@ server:
 secret:
   username: prefect
   password: prefectpass
+  host: prefect-server.data-lake.svc.cluster.local
 
 # Prefect workers
 worker:
