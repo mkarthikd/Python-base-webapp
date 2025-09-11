@@ -24,6 +24,7 @@ secret:
   username: prefect
   password: prefectpass
   host: prefect-server.data-lake.svc.cluster.local
+  port: 4200
 
 # Prefect workers
 worker:
