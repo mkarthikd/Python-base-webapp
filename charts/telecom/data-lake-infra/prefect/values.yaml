@@ -21,17 +21,8 @@ server:
 
 # Prefect server secret (required)
 secret:
-  # Reference the Kubernetes secret instead of hardcoding
-  username:
-    valueFrom:
-      secretKeyRef:
-        name: prefect-server-secret
-        key: username
-  password:
-    valueFrom:
-      secretKeyRef:
-        name: prefect-server-secret
-        key: password
+  username: prefect
+  password: prefectpass
   host: prefect-server.data-lake.svc.cluster.local
   port: 4200
   database: prefect-database-secret
