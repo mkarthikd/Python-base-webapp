@@ -1,18 +1,10 @@
-# values.yaml
+postgresqlUsername: iceberg
+postgresqlPassword: icebergpass
+postgresqlDatabase: iceberg
 
-auth:
-  # Application-level user
-  username: iceberg
-  password: icebergpass
-  database: iceberg
+postgresqlPostgresPassword: AdminPass123
 
-  # Superuser for admin tasks
-  postgresSuperuser: true
-  superuserUsername: admin
-  superuserPassword: AdminPass123
-
-primary:
-  persistence:
-    enabled: true
-    size: 2Gi
-    storageClass: microk8s-hostpath
+persistence:
+  enabled: true
+  size: 2Gi
+  storageClass: microk8s-hostpath
