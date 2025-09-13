@@ -1,9 +1,15 @@
+# values.yaml
+
 auth:
+  # Application-level user
   username: iceberg
   password: icebergpass
   database: iceberg
 
-  enablePostgresUser: true
+  # Create a superuser for admin tasks
+  postgresSuperuser: true      # Enables creation of superuser
+  superuserUsername: admin     # Name of the superuser
+  superuserPassword: AdminPass123  # Superuser password
 
 primary:
   persistence:
