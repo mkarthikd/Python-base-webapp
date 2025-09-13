@@ -6,10 +6,10 @@ auth:
   password: icebergpass
   database: iceberg
 
-  # Create a superuser for admin tasks
-  postgresSuperuser: true      # Enables creation of superuser
-  superuserUsername: admin     # Name of the superuser
-  superuserPassword: AdminPass123  # Superuser password
+  # Superuser for admin tasks
+  postgresSuperuser: true
+  superuserUsername: admin
+  superuserPassword: AdminPass123
 
 primary:
   persistence:
