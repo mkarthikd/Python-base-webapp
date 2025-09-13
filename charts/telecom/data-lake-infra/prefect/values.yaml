@@ -93,13 +93,13 @@ persistence:
 server:
   replicaCount: 1
 
-# Dummy secret (required by chart template, but unused with externalDatabase)
 secret:
-  username: dummy
-  password: dummy
-  host: dummy
+  create: true
+  username: prefect
+  password: prefectpass
+  database: prefect
+  host: postgres-postgresql.data-lake.svc.cluster.local
   port: 5432
-  database: dummy
 
 # Prefect workers
 worker:
