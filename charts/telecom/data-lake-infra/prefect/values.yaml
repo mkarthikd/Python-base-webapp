@@ -93,13 +93,13 @@ persistence:
 server:
   replicaCount: 1
 
-# ❌ REMOVE this block – Helm will auto-create the secret from externalDatabase
-# secret:
-#   username: prefect
-#   password: prefectpass
-#   host: prefect-server.data-lake.svc.cluster.local
-#   port: 4200
-#   database: prefect-database-secret
+# Dummy secret (required by chart template, but unused with externalDatabase)
+secret:
+  username: dummy
+  password: dummy
+  host: dummy
+  port: 5432
+  database: dummy
 
 # Prefect workers
 worker:
