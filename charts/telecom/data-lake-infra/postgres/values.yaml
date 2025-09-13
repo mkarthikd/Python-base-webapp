@@ -3,6 +3,8 @@ auth:
   password: icebergpass
   database: iceberg
 
+  enablePostgresUser: true
+
 primary:
   persistence:
     enabled: true
