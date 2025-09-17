@@ -2,7 +2,7 @@ namespace: telecom
 
 image:
   repository: docker.io/karthikmd06/telecom-customer-insights
-  tag: "1.0.0" # default, can be overwritten by ArgoCD Image Updater
+  tag: "1.0.0"
   pullPolicy: IfNotPresent
   pullSecrets:
     - name: dockerhub
@@ -15,7 +15,8 @@ service:
   targetPort: 5000
 
 env:
-  CUSTOMER_DATA: "/data/customers.csv"
+  - name: CUSTOMER_DATA
+    value: /data/customers.csv
 
 secrets:
   enabled: true
@@ -38,3 +39,8 @@ pvc:
   accessModes:
     - ReadWriteOnce
   size: 1Gi
+
+# Only include volumeMounts if your chart explicitly supports it
+volumeMounts:
+  - name: customer-data
+    mountPath: /data

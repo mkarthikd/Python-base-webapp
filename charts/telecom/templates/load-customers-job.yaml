@@ -13,19 +13,19 @@ spec:
           command: ["python", "-u", "/scripts/load_csv.py"]
           env:
             - name: CUSTOMER_DATA
-              value: {{ .Values.env.CUSTOMER_DATA | quote }}
+              value: /data/customers.csv
             - name: POSTGRES_URL
               value: "postgresql+asyncpg://iceberg:icebergpass@postgres-rw.data-lake.svc.cluster.local:5432/iceberg"
           volumeMounts:
             - name: customer-data
-              mountPath: {{ .Values.env.CUSTOMER_DATA | quote }}
+              mountPath: /data
             - name: loader-scripts
               mountPath: /scripts
       restartPolicy: OnFailure
       volumes:
         - name: customer-data
           persistentVolumeClaim:
-            claimName: {{ .Values.pvc.name }}
+            claimName: data-lake-pvc
         - name: loader-scripts
           configMap:
             name: load-csv-scripts
