@@ -2,26 +2,42 @@ from flask import Flask, jsonify, request, send_from_directory
 import os
 import pandas as pd
 import traceback
+from sqlalchemy import create_engine
 
 from app.model.recommender import recommend_plan, PLAN_CATALOG
 
-# Read secret from environment (from K8s Secret)
+# ------------------ Configuration ------------------
 app_secret = os.environ.get("APP_SECRET", "default_secret")
+CUSTOMER_DATA = os.environ.get("CUSTOMER_DATA", "/data/customers.csv")
+POSTGRES_URL = os.environ.get(
+    "POSTGRES_URL",
+    "postgresql+asyncpg://iceberg:icebergpass@postgres-rw.data-lake.svc.cluster.local:5432/iceberg"
+)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = app_secret
-
-# Path to customer CSV (PVC mount)
-CUSTOMER_DATA = os.environ.get("CUSTOMER_DATA", "/data/customers.csv")
-
-# In-memory cache for customers dataframe
 _customers_cache = None
 
+# ------------------ Database Functions ------------------
+def get_engine():
+    return create_engine(POSTGRES_URL)
+
+def load_csv_to_postgres():
+    """Load CSV data into PostgreSQL 'customers' table."""
+    if not os.path.exists(CUSTOMER_DATA):
+        print(f"{CUSTOMER_DATA} not found. Skipping DB load.")
+        return
+
+    try:
+        df = pd.read_csv(CUSTOMER_DATA)
+        engine = get_engine()
+        df.to_sql("customers", engine, if_exists="replace", index=False)
+        print(f"Loaded {len(df)} rows into PostgreSQL table 'customers'.")
+    except Exception as e:
+        print("Error loading CSV to PostgreSQL:", e)
+        print(traceback.format_exc())
+
 def load_data():
-    """
-    Load the customer CSV into a pandas DataFrame (cached).
-    If no CSV is available, returns an empty DataFrame with expected columns.
-    """
     global _customers_cache
     if _customers_cache is not None and not _customers_cache.empty:
         return _customers_cache
@@ -36,7 +52,6 @@ def load_data():
                 "avg_monthly_data_gb", "avg_monthly_minutes",
                 "avg_monthly_sms", "avg_monthly_spend"
             ])
-        # Ensure required columns exist
         for col in ["customer_id", "name", "region", "avg_monthly_data_gb",
                     "avg_monthly_minutes", "avg_monthly_sms", "avg_monthly_spend"]:
             if col not in df.columns:
@@ -58,9 +73,6 @@ def load_data():
     return _customers_cache
 
 def apply_filters_sort_limit(df, results, default_sort="customer_id", default_order="asc"):
-    """
-    Apply region filter, sorting, and limit based on query params.
-    """
     region_filter = request.args.get("region")
     if region_filter and not df.empty:
         df = df[df["region"].str.lower() == region_filter.lower()]
@@ -83,8 +95,7 @@ def apply_filters_sort_limit(df, results, default_sort="customer_id", default_or
 
     return results[:limit], len(results)
 
-# ------------------------ Routes ------------------------
-
+# ------------------ API Routes ------------------
 @app.route("/")
 def dashboard():
     return send_from_directory("static", "index.html")
@@ -129,12 +140,7 @@ def top_savings():
     for _, row in df.iterrows():
         rec = recommend_plan(row.to_dict())
         if rec.get("estimated_savings", 0) > 0:
-            results.append({
-                "customer_id": row["customer_id"],
-                "name": row.get("name", ""),
-                "region": row.get("region", ""),
-                **rec
-            })
+            results.append({**row.to_dict(), **rec})
 
     results, total = apply_filters_sort_limit(df, results, default_sort="estimated_savings", default_order="desc")
     return jsonify(top_savings=results, total=total)
@@ -149,12 +155,7 @@ def top_upsell():
     for _, row in df.iterrows():
         rec = recommend_plan(row.to_dict())
         if rec.get("estimated_savings", 0) < 0:
-            results.append({
-                "customer_id": row["customer_id"],
-                "name": row.get("name", ""),
-                "region": row.get("region", ""),
-                **rec
-            })
+            results.append({**row.to_dict(), **rec})
 
     results, total = apply_filters_sort_limit(df, results, default_sort="estimated_savings", default_order="asc")
     return jsonify(top_upsell=results, total=total)
@@ -201,11 +202,9 @@ def summary_stats():
         "sample": results
     })
 
-# ------------------------ Run ------------------------
+# ------------------ Run ------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    try:
-        load_data()
-    except Exception as e:
-        print("Initial load_data() failed:", e)
+    load_csv_to_postgres()  # CSV → PostgreSQL
+    load_data()             # CSV → memory
     app.run(host="0.0.0.0", port=port)
