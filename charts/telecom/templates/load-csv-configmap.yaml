@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: load-csv-scripts
-  namespace: {{ .Values.namespace }}
+  namespace: telecom
 data:
   load_csv.py: |
     import pandas as pd

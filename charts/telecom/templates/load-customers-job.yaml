@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: load-customers
-  namespace: {{ .Values.namespace }}
+  namespace: telecom
 spec:
   backoffLimit: 3
   template:
