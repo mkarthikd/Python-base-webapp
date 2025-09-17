@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "telecom-app.fullname" . }}
-  namespace: {{ .Values.namespace }}
+  name: telecom-api
+  namespace: telecom
   labels:
-    app: {{ include "telecom-app.name" . }}
+    app: telecom-api
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "telecom-app.name" . }}
+      app: telecom-api
   template:
     metadata:
       labels:
-        app: {{ include "telecom-app.name" . }}
+        app: telecom-api
     spec:
       containers:
-        - name: {{ .Chart.Name }}
+        - name: telecom-api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
