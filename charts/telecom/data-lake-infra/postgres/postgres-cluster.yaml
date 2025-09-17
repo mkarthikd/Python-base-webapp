@@ -1,0 +1,26 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: data-lake
+spec:
+  instances: 1
+
+  bootstrap:
+    initdb:
+      database: iceberg
+      owner: iceberg
+      secret:
+        name: postgres-app-secret
+
+  storage:
+    size: 2Gi
+    storageClass: microk8s-hostpath
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 500m
