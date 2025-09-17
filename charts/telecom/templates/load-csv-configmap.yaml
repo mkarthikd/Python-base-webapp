@@ -5,27 +5,17 @@ metadata:
   namespace: {{ .Values.namespace }}
 data:
   load_csv.py: |
-    import os
     import pandas as pd
     from sqlalchemy import create_engine
+    import os
 
     CUSTOMER_DATA = os.environ.get("CUSTOMER_DATA", "/data/customers.csv")
-    POSTGRES_URL = os.environ.get(
-        "POSTGRES_URL",
-        "postgresql+asyncpg://iceberg:icebergpass@postgres-rw.data-lake.svc.cluster.local:5432/iceberg"
-    )
+    POSTGRES_URL = os.environ.get("POSTGRES_URL")
 
-    def main():
-        if not os.path.exists(CUSTOMER_DATA):
-            print(f"{CUSTOMER_DATA} not found. Exiting.")
-            return
-        try:
-            df = pd.read_csv(CUSTOMER_DATA)
-            engine = create_engine(POSTGRES_URL)
-            df.to_sql("customers", engine, if_exists="replace", index=False)
-            print(f"Loaded {len(df)} rows into PostgreSQL 'customers'.")
-        except Exception as e:
-            print("Error loading CSV to PostgreSQL:", e)
-
-    if __name__ == "__main__":
-        main()
+    if os.path.exists(CUSTOMER_DATA):
+        df = pd.read_csv(CUSTOMER_DATA)
+        engine = create_engine(POSTGRES_URL)
+        df.to_sql("customers", engine, if_exists="replace", index=False)
+        print(f"Loaded {len(df)} rows into PostgreSQL 'customers'")
+    else:
+        print(f"{CUSTOMER_DATA} not found, skipping DB load")

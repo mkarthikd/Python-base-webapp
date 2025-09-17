@@ -1,56 +1,37 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: telecom-api
+  name: {{ include "telecom-app.fullname" . }}
   namespace: {{ .Values.namespace }}
   labels:
-    app: telecom-api
+    app: {{ include "telecom-app.name" . }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: telecom-api
+      app: {{ include "telecom-app.name" . }}
   template:
     metadata:
       labels:
-        app: telecom-api
+        app: {{ include "telecom-app.name" . }}
     spec:
-      imagePullSecrets:
-        {{- range .Values.image.pullSecrets }}
-        - name: {{ .name }}
-        {{- end }}
       containers:
-        - name: telecom
+        - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
-          env:
-            - name: CUSTOMER_DATA
-              value: {{ .Values.env.CUSTOMER_DATA | quote }}
-            {{- if .Values.secrets.enabled }}
-            - name: APP_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.secrets.name }}
-                  key: APP_SECRET
-            {{- end }}
           volumeMounts:
-            - name: data-storage
+            - name: customer-data
               mountPath: /data
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: {{ .Values.service.targetPort }}
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: {{ .Values.service.targetPort }}
-            initialDelaySeconds: 10
-            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
       volumes:
-        - name: data-storage
+        - name: customer-data
           persistentVolumeClaim:
             claimName: {{ .Values.pvc.name }}

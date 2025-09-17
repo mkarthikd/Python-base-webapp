@@ -7,25 +7,26 @@ spec:
   backoffLimit: 3
   template:
     spec:
+      restartPolicy: OnFailure
       containers:
         - name: csv-loader
           image: python:3.11-slim
           command: ["python", "-u", "/scripts/load_csv.py"]
           env:
-            - name: CUSTOMER_DATA
-              value: /data/customers.csv
-            - name: POSTGRES_URL
-              value: "postgresql+asyncpg://iceberg:icebergpass@postgres-rw.data-lake.svc.cluster.local:5432/iceberg"
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           volumeMounts:
             - name: customer-data
               mountPath: /data
             - name: loader-scripts
               mountPath: /scripts
-      restartPolicy: OnFailure
       volumes:
         - name: customer-data
           persistentVolumeClaim:
-            claimName: data-lake-pvc
+            claimName: {{ .Values.pvc.name }}
         - name: loader-scripts
           configMap:
             name: load-csv-scripts
+            defaultMode: 420

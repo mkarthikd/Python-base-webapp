@@ -17,6 +17,8 @@ service:
 env:
   - name: CUSTOMER_DATA
     value: /data/customers.csv
+  - name: POSTGRES_URL
+    value: postgresql+asyncpg://iceberg:icebergpass@postgres-rw.data-lake.svc.cluster.local:5432/iceberg
 
 secrets:
   enabled: true
@@ -39,8 +41,3 @@ pvc:
   accessModes:
     - ReadWriteOnce
   size: 1Gi
-
-# Only include volumeMounts if your chart explicitly supports it
-volumeMounts:
-  - name: customer-data
-    mountPath: /data
