@@ -1,87 +1,12 @@
-# # Use external PostgreSQL
-# postgresql:
-#   enabled: false
-
-# externalDatabase:
-#   host: postgres-postgresql.data-lake.svc.cluster.local
-#   port: 5432
-#   database: prefect
-#   user: iceberg
-#   password: icebergpass
-
-# # Prefect persistence (metadata, logs)
-# persistence:
-#   enabled: true
-#   storageClass: microk8s-hostpath
-#   size: 5Gi
-
-# # Prefect server
-# server:
-#   replicaCount: 1
-
-# # Prefect server secret (required)
-# secret:
-#   username: prefect
-#   password: prefectpass
-#   host: prefect-server.data-lake.svc.cluster.local
-#   port: 4200
-#   database: prefect-database-secret
-
-# # Prefect workers
-# worker:
-#   enabled: true
-#   replicaCount: 2
-#   config:
-#     workPool: default-agent-pool
-#   selfHostedServerApiConfig:
-#     apiUrl: http://prefect-server.data-lake.svc.cluster.local:4200/api
-
-# # Expose Prefect Server
-# service:
-#   type: LoadBalancer
-#   port: 4200
-
-# # Disable ingress (optional, you can switch on later)
-# ingress:
-#   enabled: false
-
-# # Resource requests/limits
-# resources:
-#   server:
-#     requests:
-#       cpu: "500m"
-#       memory: "512Mi"
-#     limits:
-#       cpu: "1"
-#       memory: "1Gi"
-#   worker:
-#     requests:
-#       cpu: "200m"
-#       memory: "256Mi"
-#     limits:
-#       cpu: "500m"
-#       memory: "512Mi"
-
-# # Extra storage if needed
-# extraVolumes:
-#   - name: warehouse
-#     persistentVolumeClaim:
-#       claimName: warehouse-pvc
-
-# extraVolumeMounts:
-#   - name: warehouse
-#     mountPath: /data/warehouse
-
-# Use external PostgreSQL
 postgresql:
   enabled: false
 
 externalDatabase:
-  host: postgres-postgresql.data-lake.svc.cluster.local
+  host: postgres-rw.data-lake.svc.cluster.local  # updated to CNPG primary
   port: 5432
-  database: prefect
-  user: prefect
-  password: prefectpass
+  database: iceberg
+  user: iceberg
+  password: icebergpass
 
 # Prefect persistence (metadata, logs)
 persistence:
@@ -95,10 +20,10 @@ server:
 
 secret:
   create: true
-  username: prefect
-  password: prefectpass
-  database: prefect
-  host: postgres-postgresql.data-lake.svc.cluster.local
+  username: iceberg
+  password: icebergpass
+  database: iceberg
+  host: postgres-rw.data-lake.svc.cluster.local  # updated to CNPG primary
   port: 5432
 
 # Prefect workers
