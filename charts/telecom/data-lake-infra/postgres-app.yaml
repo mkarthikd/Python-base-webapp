@@ -35,13 +35,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://charts.helm.sh/stable
-    chart: postgresql
-    targetRevision: 12.1.13
-    helm:
-      releaseName: postgres
-      valueFiles: 
-        - charts/telecom/data-lake-infra/postgres/values.yaml
+    repoURL: https://github.com/mkarthikd/Python-base-webapp.git
+    targetRevision: main
+    path: charts/telecom/data-lake-infra/postgres
   destination:
     server: https://kubernetes.default.svc
     namespace: data-lake
